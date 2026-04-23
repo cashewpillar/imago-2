@@ -1,0 +1,52 @@
+:root {
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --text: #1a1a18;
+  --text-muted: #6b6b67;
+  --border: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --brand: #7f77dd;
+  --brand-soft: rgba(127, 119, 221, 0.14);
+  --success: #1d8c67;
+  --danger: #c14d4d;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 12px 36px rgba(77, 65, 36, 0.08);
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: #f7f6f2;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
