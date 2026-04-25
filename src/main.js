@@ -4,3 +4,9 @@ import router from './router';
 import './styles/app.css';
 
 createApp(App).use(router).mount('#app');
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
+  });
+}
