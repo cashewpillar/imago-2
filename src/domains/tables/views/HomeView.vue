@@ -7,9 +7,10 @@ import EmptyState from '../../../shared/components/EmptyState.vue';
 import TagGroups from '../../../shared/components/TagGroups.vue';
 import TableCard from '../components/TableCard.vue';
 import TableFormModal from '../components/TableFormModal.vue';
+import TableSettingsModal from '../components/TableSettingsModal.vue';
 import { getColor } from '../../../shared/utils/color';
-import { listVaults, createVault, deleteVault } from '../services/tableVaultDb';
-import { exportAllData, importAllData, importTableData } from '../services/fileTransfers';
+import { listVaults, createVault, deleteVault, updateVault } from '../services/tableVaultDb';
+import { exportAllData, exportTableData, importAllData, importTableData } from '../services/fileTransfers';
 
 const router = useRouter();
 const { toggleTheme, isLight, showToast } = inject('appShell');
@@ -19,6 +20,8 @@ const homeSearch = ref('');
 const topSearchOpen = ref(false);
 const homeTagFilters = ref([]);
 const createModalOpen = ref(false);
+const settingsOpen = ref(false);
+const selectedTable = ref(null);
 const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
 
 const allTagGroups = computed(() => {
@@ -60,9 +63,19 @@ function openContextMenu(event, table) {
     items: [
       {
         label: '⚙️  Settings',
-        action: () => router.push({ name: 'table-records', params: { tableId: table.id }, query: { settings: '1' } }),
+        action: () => {
+          selectedTable.value = table;
+          settingsOpen.value = true;
+        },
       },
       { sep: true },
+      {
+        label: '⬇️  Export',
+        action: async () => {
+          await exportTableData(table);
+          showToast('Table exported!', 'success');
+        },
+      },
       {
         label: '🗑  Delete',
         danger: true,
@@ -108,6 +121,25 @@ async function handleCreateTable(payload) {
   await loadHome();
   showToast('Table created!', 'success');
   router.push({ name: 'table-records', params: { tableId: id } });
+}
+
+async function handleSaveSettings(payload) {
+  if (!selectedTable.value || !payload.name) {
+    showToast('Enter a name', 'error');
+    return;
+  }
+
+  await updateVault(selectedTable.value.id, {
+    name: payload.name,
+    icon: payload.icon || '📋',
+    color: payload.color,
+    tags: payload.tags,
+  });
+
+  settingsOpen.value = false;
+  selectedTable.value = null;
+  await loadHome();
+  showToast('Saved!', 'success');
 }
 
 async function handleImportAll() {
@@ -221,6 +253,17 @@ onUnmounted(() => {
       :is-light="isLight"
       @close="createModalOpen = false"
       @save="handleCreateTable"
+    />
+
+    <TableSettingsModal
+      :open="settingsOpen"
+      :table="selectedTable"
+      :is-light="isLight"
+      @close="
+        settingsOpen = false;
+        selectedTable = null
+      "
+      @save="handleSaveSettings"
     />
 
     <ContextMenu

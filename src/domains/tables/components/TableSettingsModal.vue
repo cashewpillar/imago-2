@@ -20,7 +20,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'save', 'export', 'delete']);
+const emit = defineEmits(['close', 'save']);
 
 const form = reactive({
   name: '',
@@ -80,10 +80,6 @@ function submit() {
     <div class="fg">
       <label class="flabel">Tags</label>
       <TagEditor :tags="form.tags" :color="editorColor" @add="addTag" @remove="removeTag" />
-    </div>
-    <div style="padding-top:12px;border-top:1px solid var(--border);display:flex;gap:8px;">
-      <button class="btn btn-ghost" style="flex:1;" @click="$emit('export')">Export Table</button>
-      <button class="btn btn-danger" style="flex:1;" @click="$emit('delete')">Delete Table</button>
     </div>
 
     <template #footer>

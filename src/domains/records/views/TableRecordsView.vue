@@ -1,6 +1,6 @@
 <script setup>
 import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import AppTopbar from '../../../shared/components/AppTopbar.vue';
 import ContextMenu from '../../../shared/components/ContextMenu.vue';
 import EmptyState from '../../../shared/components/EmptyState.vue';
@@ -14,14 +14,12 @@ import { getGroupValue, getRecordMetaGroups } from '../../../shared/utils/tableV
 import {
   createEntry,
   deleteEntry,
-  deleteVault,
   getEntry,
   getVault,
   listEntries,
   updateEntry,
   updateVault,
 } from '../../tables/services/tableVaultDb';
-import { exportTableData } from '../../tables/services/fileTransfers';
 
 const props = defineProps({
   tableId: {
@@ -30,7 +28,6 @@ const props = defineProps({
   },
 });
 
-const route = useRoute();
 const router = useRouter();
 const { toggleTheme, isLight, showToast } = inject('appShell');
 
@@ -162,22 +159,6 @@ async function saveSettings(payload) {
   await loadRecords();
   showToast('Saved!', 'success');
 }
-async function handleDeleteTable() {
-  if (!window.confirm('Delete this table and all its records?')) return;
-  await deleteVault(props.tableId);
-  showToast('Table deleted', 'error');
-  router.push({ name: 'home' });
-}
-
-async function handleExportTable() {
-  try {
-    await exportTableData(vault.value);
-    showToast('Table exported!', 'success');
-  } catch (error) {
-    showToast(error.message || 'Export failed', 'error');
-  }
-}
-
 function toggleGroup(name) {
   collapsedGroups.value = {
     ...collapsedGroups.value,
@@ -276,14 +257,6 @@ function formatRecordDate(record) {
 function onWindowClick() {
   closeContextMenu();
 }
-
-watch(
-  () => route.query.settings,
-  (value) => {
-    settingsOpen.value = value === '1';
-  },
-  { immediate: true },
-);
 
 watch(
   () => props.tableId,
@@ -413,8 +386,6 @@ onUnmounted(() => {
       :is-light="isLight"
       @close="settingsOpen = false"
       @save="saveSettings"
-      @export="handleExportTable"
-      @delete="handleDeleteTable"
     />
 
     <ContextMenu
