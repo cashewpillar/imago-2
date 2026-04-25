@@ -202,6 +202,40 @@ function openEntryContext(event, record) {
           if (fresh) openRecordModal('edit', fresh);
         },
       },
+      {
+        label: '📋  Copy',
+        action: async () => {
+          const yamlItems = fields.value
+            .map((field) => {
+              const val = record.data?.[field.key];
+              if (val === undefined || val === null || val === '') return null;
+
+              let displayVal;
+              if (field.type === 'boolean') {
+                displayVal = val ? 'true' : 'false';
+              } else if (Array.isArray(val)) {
+                if (val.length === 0) return null;
+                displayVal = '\n' + val.map((v) => `  - ${v}`).join('\n');
+              } else if (typeof val === 'string' && val.includes('\n')) {
+                displayVal = '|\n' + val.split('\n').map((line) => `  ${line}`).join('\n');
+              } else {
+                displayVal = val;
+              }
+
+              return `${field.label}: ${displayVal}`;
+            })
+            .filter(Boolean);
+
+          const text = yamlItems.join('\n');
+
+          try {
+            await navigator.clipboard.writeText(text);
+            showToast('Copied as YAML!', 'success');
+          } catch (err) {
+            showToast('Failed to copy', 'error');
+          }
+        },
+      },
       { sep: true },
       {
         label: '🗑  Delete',
