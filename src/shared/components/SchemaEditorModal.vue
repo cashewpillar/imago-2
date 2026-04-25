@@ -180,7 +180,11 @@ function toggleMultiSelectValue(fieldKey, option) {
 }
 
 function selectSingleValue(fieldKey, option) {
-  form[fieldKey] = option;
+  if (form[fieldKey] === option) {
+    form[fieldKey] = '';
+  } else {
+    form[fieldKey] = option;
+  }
 }
 
 function supportsOptions(field) {
