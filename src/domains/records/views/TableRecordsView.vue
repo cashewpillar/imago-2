@@ -7,16 +7,18 @@ import EmptyState from '../../../shared/components/EmptyState.vue';
 import TagGroups from '../../../shared/components/TagGroups.vue';
 import RecordCard from '../components/RecordCard.vue';
 import RecordFormModal from '../components/RecordFormModal.vue';
-import TableSettingsModal from '../../tables/components/TableSettingsModal.vue';
+import TableEditorModal from '../../tables/components/TableEditorModal.vue';
 import { features } from '../../../shared/constants/features';
 import { getColor } from '../../../shared/utils/color';
-import { getGroupValue, getRecordMetaGroups } from '../../../shared/utils/tableVault';
+import { getDefaultTableMetaFields, getGroupValue, getRecordMetaGroups, sanitizeTableMetaSchema, splitTableFormData } from '../../../shared/utils/tableVault';
 import {
   createEntry,
   deleteEntry,
+  getAppMeta,
   getEntry,
   getVault,
   listEntries,
+  setAppMeta,
   updateEntry,
   updateVault,
 } from '../../tables/services/tableVaultDb';
@@ -42,6 +44,7 @@ const recordModal = ref({ open: false, mode: 'add', entryId: null, data: {} });
 const settingsOpen = ref(false);
 const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
 const showGroupingSelect = features.recordsGrouping;
+const tableMetaSchema = ref(getDefaultTableMetaFields());
 
 const vaultColor = computed(() => getColor(vault.value?.color || 'Lime', isLight.value));
 const fields = computed(() => vault.value?.fields || []);
@@ -96,7 +99,9 @@ const groupingOptions = computed(() => [
 ]);
 
 async function loadRecords() {
-  vault.value = await getVault(props.tableId);
+  const [nextVault, schemaMeta] = await Promise.all([getVault(props.tableId), getAppMeta('tableMetaSchema')]);
+  vault.value = nextVault;
+  tableMetaSchema.value = sanitizeTableMetaSchema(schemaMeta?.value || getDefaultTableMetaFields());
   if (!vault.value) {
     router.replace({ name: 'home' });
     return;
@@ -143,17 +148,22 @@ async function saveRecord({ data, fields: nextFields }) {
   await loadRecords();
 }
 
-async function saveSettings(payload) {
-  if (!payload.name) {
+async function saveSettings({ data, formFields }) {
+  if (!data.name) {
     showToast('Enter a name', 'error');
     return;
   }
 
+  const { name, icon, color, meta } = splitTableFormData(data);
+  const schema = sanitizeTableMetaSchema(formFields);
+  await setAppMeta('tableMetaSchema', schema);
+  tableMetaSchema.value = schema;
+
   await updateVault(props.tableId, {
-    name: payload.name,
-    icon: payload.icon || '📋',
-    color: payload.color,
-    tags: payload.tags,
+    name,
+    icon: icon || '📋',
+    color,
+    meta,
   });
   settingsOpen.value = false;
   await loadRecords();
@@ -380,10 +390,12 @@ onUnmounted(() => {
       @save="saveRecord"
     />
 
-    <TableSettingsModal
+    <TableEditorModal
       :open="settingsOpen"
       :table="vault"
+      mode="edit"
       :is-light="isLight"
+      :schema="tableMetaSchema"
       @close="settingsOpen = false"
       @save="saveSettings"
     />

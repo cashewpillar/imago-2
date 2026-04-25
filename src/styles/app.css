@@ -171,7 +171,19 @@ button, input, select, textarea { font: inherit; }
 .record-form-pane { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .record-fields-pane { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .record-fields-pane-standalone { padding-top: 2px; }
+.record-fields-section { display: flex; flex-direction: column; gap: 8px; }
+.record-fields-section-title { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted2); }
+.record-fields-divider { height: 1px; background: var(--border); margin: 2px 0 4px; }
 .record-fields-list { display: flex; flex-direction: column; gap: 7px; }
+.field-badge-neutral { background: var(--bg4); color: var(--muted); }
+.multi-select-wrap { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
+.multi-select-chip { border: 1px solid var(--border2); background: var(--bg3); color: var(--muted); border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .12s; }
+.multi-select-chip.active { background: var(--primary); border-color: var(--primary); color: #0e0e10; }
+.form-row { display: flex; flex-direction: column; gap: 14px; }
+.form-row-inline { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; }
+.form-cell { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.form-cell-compact { flex: 0 0 72px; }
+.finput-icon { font-size: 20px; text-align: center; }
 
 .tpill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .tpill-x { cursor: pointer; opacity: .7; font-size: 13px; line-height: 1; }
@@ -200,4 +212,6 @@ button, input, select, textarea { font: inherit; }
   .modal-backdrop { padding-inline: 10px; }
   .modal-header-actions { gap: 6px; }
   .record-form-switch-btn { padding: 4px 8px; }
+  .form-row-inline { gap: 10px; }
+  .form-cell-compact { flex-basis: 64px; }
 }

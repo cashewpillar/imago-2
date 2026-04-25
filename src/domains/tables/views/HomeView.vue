@@ -6,11 +6,11 @@ import ContextMenu from '../../../shared/components/ContextMenu.vue';
 import EmptyState from '../../../shared/components/EmptyState.vue';
 import TagGroups from '../../../shared/components/TagGroups.vue';
 import TableCard from '../components/TableCard.vue';
-import TableFormModal from '../components/TableFormModal.vue';
-import TableSettingsModal from '../components/TableSettingsModal.vue';
+import TableEditorModal from '../components/TableEditorModal.vue';
 import { getColor } from '../../../shared/utils/color';
-import { listVaults, createVault, deleteVault, updateVault } from '../services/tableVaultDb';
+import { getAppMeta, listVaults, createVault, deleteVault, setAppMeta, updateVault } from '../services/tableVaultDb';
 import { exportAllData, exportTableData, importAllData, importTableData } from '../services/fileTransfers';
+import { getDefaultTableMetaFields, getTableMetaGroups, sanitizeTableMetaSchema, splitTableFormData } from '../../../shared/utils/tableVault';
 
 const router = useRouter();
 const { toggleTheme, isLight, showToast } = inject('appShell');
@@ -23,16 +23,24 @@ const createModalOpen = ref(false);
 const settingsOpen = ref(false);
 const selectedTable = ref(null);
 const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
+const tableMetaSchema = ref(getDefaultTableMetaFields());
 
 const allTagGroups = computed(() => {
-  const tags = new Set();
-  vaults.value.forEach((vault) => (vault.tags || []).forEach((tag) => tags.add(tag)));
-  return tags.size ? [{ label: 'Tags', tags: [...tags] }] : [];
+  const groups = new Map();
+  vaults.value.forEach((vault) => {
+    getTableMetaGroups(tableMetaSchema.value, vault).forEach((group) => {
+      const next = groups.get(group.key) || { label: group.label, tags: new Set() };
+      group.values.forEach((value) => next.tags.add(value));
+      groups.set(group.key, next);
+    });
+  });
+  return [...groups.entries()].map(([key, group]) => ({ key, label: group.label, tags: [...group.tags] }));
 });
 
 const filteredVaults = computed(() =>
   vaults.value.filter((vault) => {
-    if (homeTagFilters.value.length && !homeTagFilters.value.every((tag) => (vault.tags || []).includes(tag))) {
+    const tableTags = getTableMetaGroups(tableMetaSchema.value, vault).flatMap((group) => group.values);
+    if (homeTagFilters.value.length && !homeTagFilters.value.every((tag) => tableTags.includes(tag))) {
       return false;
     }
     if (homeSearch.value && !vault.name.toLowerCase().includes(homeSearch.value.toLowerCase())) {
@@ -43,7 +51,9 @@ const filteredVaults = computed(() =>
 );
 
 async function loadHome() {
-  vaults.value = await listVaults();
+  const [nextVaults, schemaMeta] = await Promise.all([listVaults(), getAppMeta('tableMetaSchema')]);
+  vaults.value = nextVaults;
+  tableMetaSchema.value = sanitizeTableMetaSchema(schemaMeta?.value || getDefaultTableMetaFields());
 }
 
 function toggleTag(tag) {
@@ -99,21 +109,26 @@ async function handleContextSelect(item) {
   await item.action?.();
 }
 
-async function handleCreateTable(payload) {
-  if (!payload.name) {
+async function handleCreateTable({ data, formFields }) {
+  if (!data.name) {
     showToast('Enter a table name', 'error');
     return;
   }
 
+  const { name, icon, color, meta } = splitTableFormData(data);
+  const schema = sanitizeTableMetaSchema(formFields);
+  await setAppMeta('tableMetaSchema', schema);
+  tableMetaSchema.value = schema;
+
   const id = await createVault({
-    name: payload.name,
-    icon: payload.icon || '📋',
-    color: payload.color,
+    name,
+    icon: icon || '📋',
+    color,
+    meta,
     fields: [
       { key: 'title', label: 'Title', type: 'text', options: [] },
       { key: 'notes', label: 'Notes', type: 'textarea', options: [] },
     ],
-    tags: [],
     createdAt: Date.now(),
   });
 
@@ -123,17 +138,22 @@ async function handleCreateTable(payload) {
   router.push({ name: 'table-records', params: { tableId: id } });
 }
 
-async function handleSaveSettings(payload) {
-  if (!selectedTable.value || !payload.name) {
+async function handleSaveSettings({ data, formFields }) {
+  if (!selectedTable.value || !data.name) {
     showToast('Enter a name', 'error');
     return;
   }
 
+  const { name, icon, color, meta } = splitTableFormData(data);
+  const schema = sanitizeTableMetaSchema(formFields);
+  await setAppMeta('tableMetaSchema', schema);
+  tableMetaSchema.value = schema;
+
   await updateVault(selectedTable.value.id, {
-    name: payload.name,
-    icon: payload.icon || '📋',
-    color: payload.color,
-    tags: payload.tags,
+    name,
+    icon: icon || '📋',
+    color,
+    meta,
   });
 
   settingsOpen.value = false;
@@ -240,6 +260,7 @@ onUnmounted(() => {
           :key="table.id"
           :table="table"
           :color="getColor(table.color, isLight)"
+          :meta-schema="tableMetaSchema"
           @open="openTable"
           @menu="openContextMenu"
         />
@@ -248,17 +269,21 @@ onUnmounted(() => {
 
     <button class="fab" @click="createModalOpen = true">+</button>
 
-    <TableFormModal
+    <TableEditorModal
       :open="createModalOpen"
+      mode="create"
       :is-light="isLight"
+      :schema="tableMetaSchema"
       @close="createModalOpen = false"
       @save="handleCreateTable"
     />
 
-    <TableSettingsModal
+    <TableEditorModal
       :open="settingsOpen"
       :table="selectedTable"
+      mode="edit"
       :is-light="isLight"
+      :schema="tableMetaSchema"
       @close="
         settingsOpen = false;
         selectedTable = null

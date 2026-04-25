@@ -9,5 +9,17 @@ export const COLORS = [
   { name: 'Ice', val: '#ddeeff', lightVal: '#4682b4', dim: 'rgba(221,238,255,.10)' },
 ];
 
-export const FIELD_TYPES = ['text', 'number', 'date', 'url', 'boolean', 'select', 'progress', 'textarea'];
+export const FIELD_TYPES = [
+  'text',
+  'number',
+  'date',
+  'url',
+  'boolean',
+  'select',
+  'multiselect',
+  'progress',
+  'textarea',
+  'icon',
+  'color',
+];
 export const THEME_KEY = 'tablevault-theme';

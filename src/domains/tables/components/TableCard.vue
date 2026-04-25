@@ -1,5 +1,8 @@
 <script setup>
-defineProps({
+import { computed } from 'vue';
+import { getTableMetaGroups } from '../../../shared/utils/tableVault';
+
+const props = defineProps({
   table: {
     type: Object,
     required: true,
@@ -8,9 +11,15 @@ defineProps({
     type: Object,
     required: true,
   },
+  metaSchema: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 defineEmits(['open', 'menu']);
+
+const metaGroups = computed(() => getTableMetaGroups(props.metaSchema, props.table));
 </script>
 
 <template>
@@ -18,14 +27,19 @@ defineEmits(['open', 'menu']);
     <div class="tc-stripe" :style="{ background: color.val }" />
     <div class="tc-icon">{{ table.icon || '📋' }}</div>
     <div class="tc-name">{{ table.name }}</div>
-    <div v-if="table.tags?.length" class="tc-tags">
+    <div v-if="metaGroups.length" class="tc-tags">
       <span
-        v-for="tag in table.tags"
-        :key="tag"
-        class="tc-tag"
-        :style="{ background: color.dim, color: color.val }"
+        v-for="group in metaGroups"
+        :key="group.key"
       >
-        {{ tag }}
+        <span
+          v-for="value in group.values"
+          :key="`${group.key}-${value}`"
+          class="tc-tag"
+          :style="{ background: color.dim, color: color.val }"
+        >
+          {{ value }}
+        </span>
       </span>
     </div>
     <div class="tc-footer">
