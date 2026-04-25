@@ -17,11 +17,11 @@ const props = defineProps({
 const emit = defineEmits(['toggle']);
 
 function isActive(groupKey, tag) {
-  return (props.activeFilters?.[groupKey] || []).includes(tag);
+  return (props.activeFilters?.[groupKey] || []).includes(tag.value);
 }
 
 function handleToggle(group, tag) {
-  emit('toggle', { groupKey: group.key, tag, type: group.type });
+  emit('toggle', { groupKey: group.key, tag: tag.value, type: group.type });
 }
 </script>
 
@@ -32,13 +32,13 @@ function handleToggle(group, tag) {
       <div class="tag-group-chips">
         <div
           v-for="tag in group.tags"
-          :key="`${group.key}:${tag}`"
+          :key="`${group.key}:${tag.value}`"
           class="tag-chip"
           :class="{ active: isActive(group.key, tag) }"
           :style="isActive(group.key, tag) ? { background: color.val, borderColor: color.val } : undefined"
           @click="handleToggle(group, tag)"
         >
-          {{ tag }}
+          {{ tag.label }}
         </div>
       </div>
     </div>

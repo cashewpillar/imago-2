@@ -3,9 +3,15 @@ export function parseSelectOptions(value) {
   return [...new Set(list.map((item) => String(item).trim()).filter(Boolean))];
 }
 
+export const EMPTY_FILTER_VALUE = '__empty__';
+
 function normalizeMaxlength(value) {
   const next = Number.parseInt(value, 10);
   return Number.isFinite(next) && next > 0 ? next : undefined;
+}
+
+function getEmptyFilterLabel(label) {
+  return `No ${label || 'value'}`;
 }
 
 export function getDefaultTableMetaFields() {
@@ -136,7 +142,10 @@ function buildFilterGroups(schema, items, getGroups) {
         key: field.key,
         label: field.label,
         type: field.type,
-        tags: [...tags],
+        tags: [
+          { value: EMPTY_FILTER_VALUE, label: getEmptyFilterLabel(field.label) },
+          ...[...tags].sort((a, b) => String(a).localeCompare(String(b))).map((tag) => ({ value: tag, label: tag })),
+        ],
       };
     })
     .filter((group) => group.tags.length);
@@ -155,7 +164,10 @@ export function matchesActiveGroupFilters(activeFilters, groups) {
     const activeValues = Array.isArray(selection) ? selection.filter(Boolean).map(String) : [];
     if (!activeValues.length) return true;
     const groupValues = (groups.find((group) => group.key === groupKey)?.values || []).map(String);
-    return activeValues.every((value) => groupValues.includes(value));
+    return activeValues.every((value) => {
+      if (value === EMPTY_FILTER_VALUE) return groupValues.length === 0;
+      return groupValues.includes(value);
+    });
   });
 }
 
