@@ -31,10 +31,7 @@ export function sanitizeTableMetaSchema(fields) {
       key: field?.key || `meta_${Date.now()}_${index}`,
       label: field?.label || 'Field',
       type: field?.type || 'text',
-      row: field?.row ? String(field.row).trim() || null : null,
-      compact: !!field?.compact,
       locked: !!field?.locked,
-      placeholder: field?.placeholder ? String(field.placeholder) : '',
       maxlength: normalizeMaxlength(field?.maxlength),
     };
     return {
@@ -58,9 +55,6 @@ export function normalizeField(field, index = 0) {
     key: field?.key || (index === 0 ? 'title' : `f_${Date.now()}_${index}`),
     label: field?.label || (index === 0 ? 'Title' : 'Field'),
     type: safeType,
-    row: field?.row ? String(field.row).trim() || null : null,
-    compact: !!field?.compact,
-    placeholder: field?.placeholder ? String(field.placeholder) : '',
     maxlength: normalizeMaxlength(field?.maxlength),
     options: Array.isArray(field?.options)
       ? parseSelectOptions(field.options.join(','))

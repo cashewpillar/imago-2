@@ -89,20 +89,6 @@ const normalizedEditableFields = computed(() =>
   ),
 );
 
-const formRows = computed(() => {
-  const rows = [];
-  normalizedFormFields.value.forEach((field) => {
-    const rowKey = field.row || null;
-    const lastRow = rows[rows.length - 1];
-    if (rowKey && lastRow?.rowKey === rowKey) {
-      lastRow.fields.push(field);
-      return;
-    }
-    rows.push({ rowKey, fields: [field] });
-  });
-  return rows;
-});
-
 watch(
   () => [props.open, props.initialData, props.formFields, props.editableFields],
   () => {
@@ -191,10 +177,6 @@ function supportsOptions(field) {
   return ['select', 'multiselect'].includes(field.type);
 }
 
-function supportsPlaceholder(field) {
-  return ['text', 'number', 'date', 'url', 'textarea'].includes(field.type);
-}
-
 function supportsMaxlength(field) {
   return ['text', 'url', 'textarea'].includes(field.type);
 }
@@ -256,102 +238,93 @@ function submit() {
     <div class="record-form-layout">
       <div v-if="activePane === 'form'" class="record-form-pane">
         <div
-          v-for="(row, rowIndex) in formRows"
-          :key="row.rowKey || rowIndex"
-          class="form-row"
-          :class="{ 'form-row-inline': row.fields.length > 1 }"
+          v-for="field in normalizedFormFields"
+          :key="field.key"
+          class="form-cell"
         >
-          <div
-            v-for="field in row.fields"
-            :key="field.key"
-            class="form-cell"
-            :class="{ 'form-cell-compact': field.compact }"
-          >
-            <div class="rflabel">
-              {{ field.label }}
-              <span class="type-badge">{{ field.type }}</span>
-            </div>
-
-            <textarea
-              v-if="field.type === 'textarea'"
-              v-model="form[field.key]"
-              class="ftextarea"
-              @input="adjustTextareaHeight"
-            />
-
-            <div v-else-if="field.type === 'boolean'" style="display:flex;gap:16px;margin-top:2px;">
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-                <input v-model="form[field.key]" :value="true" type="radio" :name="`b_${field.key}`" :style="{ accentColor: accent.val }" />
-                Yes
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-                <input v-model="form[field.key]" :value="false" type="radio" :name="`b_${field.key}`" :style="{ accentColor: accent.val }" />
-                No
-              </label>
-            </div>
-
-            <div v-else-if="field.type === 'progress'" style="margin-top:4px;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <input
-                  v-model="form[field.key]"
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  style="flex:1;"
-                  :style="{ accentColor: accent.val }"
-                />
-                <span style="font-size:13px;font-weight:600;min-width:38px;" :style="{ color: accent.val }">
-                  {{ Number(form[field.key] || 0) }}%
-                </span>
-              </div>
-              <div class="prog-wrap" style="margin-top:6px;">
-                <div class="prog-fill" :style="{ width: `${Number(form[field.key] || 0)}%`, background: accent.val }" />
-              </div>
-            </div>
-
-            <div v-else-if="field.type === 'select'" class="multi-select-wrap">
-              <button
-                v-for="option in field.options || []"
-                :key="option"
-                type="button"
-                class="multi-select-chip"
-                :class="{ active: form[field.key] === option }"
-                @click="selectSingleValue(field.key, option)"
-              >
-                {{ option }}
-              </button>
-            </div>
-
-            <div v-else-if="field.type === 'multiselect'" class="multi-select-wrap">
-              <button
-                v-for="option in field.options || []"
-                :key="option"
-                type="button"
-                class="multi-select-chip"
-                :class="{ active: (form[field.key] || []).includes(option) }"
-                @click="toggleMultiSelectValue(field.key, option)"
-              >
-                {{ option }}
-              </button>
-            </div>
-
-            <ColorPicker
-              v-else-if="field.type === 'color'"
-              v-model="form[field.key]"
-              :is-light="isLight"
-            />
-
-            <input
-              v-else-if="field.type !== 'multiselect'"
-              v-model="form[field.key]"
-              class="finput"
-              :class="{ 'finput-icon': field.type === 'icon' }"
-              :maxlength="field.type === 'icon' ? 4 : field.maxlength"
-              :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'"
-              :placeholder="field.placeholder || (field.type === 'url' ? 'https://…' : '')"
-            />
+          <div class="rflabel">
+            {{ field.label }}
+            <span class="type-badge">{{ field.type }}</span>
           </div>
+
+          <textarea
+            v-if="field.type === 'textarea'"
+            v-model="form[field.key]"
+            class="ftextarea"
+            @input="adjustTextareaHeight"
+          />
+
+          <div v-else-if="field.type === 'boolean'" style="display:flex;gap:16px;margin-top:2px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+              <input v-model="form[field.key]" :value="true" type="radio" :name="`b_${field.key}`" :style="{ accentColor: accent.val }" />
+              Yes
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+              <input v-model="form[field.key]" :value="false" type="radio" :name="`b_${field.key}`" :style="{ accentColor: accent.val }" />
+              No
+            </label>
+          </div>
+
+          <div v-else-if="field.type === 'progress'" style="margin-top:4px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input
+                v-model="form[field.key]"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                style="flex:1;"
+                :style="{ accentColor: accent.val }"
+              />
+              <span style="font-size:13px;font-weight:600;min-width:38px;" :style="{ color: accent.val }">
+                {{ Number(form[field.key] || 0) }}%
+              </span>
+            </div>
+            <div class="prog-wrap" style="margin-top:6px;">
+              <div class="prog-fill" :style="{ width: `${Number(form[field.key] || 0)}%`, background: accent.val }" />
+            </div>
+          </div>
+
+          <div v-else-if="field.type === 'select'" class="multi-select-wrap">
+            <button
+              v-for="option in field.options || []"
+              :key="option"
+              type="button"
+              class="multi-select-chip"
+              :class="{ active: form[field.key] === option }"
+              @click="selectSingleValue(field.key, option)"
+            >
+              {{ option }}
+            </button>
+          </div>
+
+          <div v-else-if="field.type === 'multiselect'" class="multi-select-wrap">
+            <button
+              v-for="option in field.options || []"
+              :key="option"
+              type="button"
+              class="multi-select-chip"
+              :class="{ active: (form[field.key] || []).includes(option) }"
+              @click="toggleMultiSelectValue(field.key, option)"
+            >
+              {{ option }}
+            </button>
+          </div>
+
+          <ColorPicker
+            v-else-if="field.type === 'color'"
+            v-model="form[field.key]"
+            :is-light="isLight"
+          />
+
+          <input
+            v-else-if="field.type !== 'multiselect'"
+            v-model="form[field.key]"
+            class="finput"
+            :class="{ 'finput-icon': field.type === 'icon' }"
+            :maxlength="field.type === 'icon' ? 4 : field.maxlength"
+            :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'"
+          />
         </div>
       </div>
 
@@ -363,7 +336,7 @@ function submit() {
               v-for="(field, index) in localFormFields"
               :key="field.key"
               class="field-row"
-              :class="{ wrap: supportsOptions(field) || supportsPlaceholder(field) || supportsMaxlength(field) }"
+              :class="{ wrap: supportsOptions(field) || supportsMaxlength(field) }"
             >
               <span class="field-badge field-badge-neutral">{{ field.key }}</span>
               <input v-model="field.label" type="text" placeholder="Field name" />
@@ -385,21 +358,9 @@ function submit() {
                 v-if="field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
                 class="field-properties"
               >
-                <label v-if="supportsPlaceholder(field)" class="field-prop">
-                  <span>Placeholder</span>
-                  <input v-model="field.placeholder" type="text" placeholder="Optional helper text" />
-                </label>
                 <label v-if="supportsMaxlength(field)" class="field-prop field-prop-small">
                   <span>Max</span>
                   <input v-model="field.maxlength" type="number" min="1" placeholder="None" />
-                </label>
-                <label class="field-prop">
-                  <span>Row</span>
-                  <input v-model="field.row" type="text" placeholder="Optional row key" />
-                </label>
-                <label class="field-prop field-prop-toggle">
-                  <input v-model="field.compact" type="checkbox" />
-                  Compact
                 </label>
               </div>
             </div>
@@ -424,7 +385,7 @@ function submit() {
               v-for="(field, index) in localEditableFields"
               :key="field.key"
               class="field-row"
-              :class="{ primary: index === 0, wrap: supportsOptions(field) || supportsPlaceholder(field) || supportsMaxlength(field) }"
+              :class="{ primary: index === 0, wrap: supportsOptions(field) || supportsMaxlength(field) }"
             >
               <span v-if="index === 0" class="field-badge">Title</span>
               <span v-else style="color:var(--muted2);cursor:grab;font-size:14px;">⠿</span>
@@ -441,21 +402,9 @@ function submit() {
                 v-if="field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
                 class="field-properties"
               >
-                <label v-if="supportsPlaceholder(field)" class="field-prop">
-                  <span>Placeholder</span>
-                  <input v-model="field.placeholder" type="text" placeholder="Optional helper text" />
-                </label>
                 <label v-if="supportsMaxlength(field)" class="field-prop field-prop-small">
                   <span>Max</span>
                   <input v-model="field.maxlength" type="number" min="1" placeholder="None" />
-                </label>
-                <label class="field-prop">
-                  <span>Row</span>
-                  <input v-model="field.row" type="text" placeholder="Optional row key" />
-                </label>
-                <label class="field-prop field-prop-toggle">
-                  <input v-model="field.compact" type="checkbox" />
-                  Compact
                 </label>
               </div>
             </div>

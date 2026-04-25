@@ -160,8 +160,6 @@ button, input, select, textarea { font: inherit; }
 .field-prop { display: flex; flex-direction: column; gap: 5px; flex: 1 1 180px; min-width: 0; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted2); }
 .field-prop input { width: 100%; background: var(--bg4); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 12px; color: var(--text); }
 .field-prop-small { flex-basis: 84px; flex-grow: 0; }
-.field-prop-toggle { flex-direction: row; align-items: center; gap: 8px; padding-top: 20px; flex: 0 0 auto; }
-.field-prop-toggle input { width: auto; }
 .field-badge { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: color-mix(in srgb, var(--primary), transparent 88%); color: var(--primary); flex-shrink: 0; }
 .field-del { width: 22px; height: 22px; border-radius: 5px; border: none; background: none; color: var(--muted2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; transition: all .12s; }
 .field-del:hover { color: #ff5c5c; background: rgba(255,92,92,.12); }
@@ -186,10 +184,7 @@ button, input, select, textarea { font: inherit; }
 .multi-select-wrap { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
 .multi-select-chip { border: 1px solid var(--border2); background: var(--bg3); color: var(--muted); border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .12s; }
 .multi-select-chip.active { background: var(--primary); border-color: var(--primary); color: #0e0e10; }
-.form-row { display: flex; flex-direction: column; gap: 14px; }
-.form-row-inline { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; }
-.form-cell { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.form-cell-compact { flex: 0 0 72px; }
+.form-cell { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .finput-icon { font-size: 20px; text-align: center; }
 .import-records { display: flex; flex-direction: column; gap: 14px; }
 .import-summary-card { background: linear-gradient(180deg, color-mix(in srgb, var(--primary), transparent 92%), transparent), var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 12px 13px; display: flex; flex-direction: column; gap: 6px; }
