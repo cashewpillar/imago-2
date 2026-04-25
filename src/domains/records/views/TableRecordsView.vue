@@ -10,7 +10,15 @@ import RecordFormModal from '../components/RecordFormModal.vue';
 import TableEditorModal from '../../tables/components/TableEditorModal.vue';
 import { features } from '../../../shared/constants/features';
 import { getColor } from '../../../shared/utils/color';
-import { getDefaultTableMetaFields, getGroupValue, getRecordMetaGroups, sanitizeTableMetaSchema, splitTableFormData } from '../../../shared/utils/tableVault';
+import {
+  getDefaultTableMetaFields,
+  getGroupValue,
+  getRecordFilterGroups,
+  getRecordMetaGroups,
+  matchesActiveGroupFilters,
+  sanitizeTableMetaSchema,
+  splitTableFormData,
+} from '../../../shared/utils/tableVault';
 import {
   createEntry,
   deleteEntry,
@@ -37,7 +45,7 @@ const vault = ref(null);
 const entries = ref([]);
 const recordSearch = ref('');
 const topSearchOpen = ref(false);
-const recordTagFilters = ref([]);
+const recordTagFilters = ref({});
 const groupField = ref('');
 const collapsedGroups = ref({});
 const recordModal = ref({ open: false, mode: 'add', entryId: null, data: {} });
@@ -49,24 +57,11 @@ const tableMetaSchema = ref(getDefaultTableMetaFields());
 const vaultColor = computed(() => getColor(vault.value?.color || 'Lime', isLight.value));
 const fields = computed(() => vault.value?.fields || []);
 
-const tagGroups = computed(() => {
-  const groups = new Map();
-
-  entries.value.forEach((record) => {
-    getRecordMetaGroups(fields.value, record).forEach((group) => {
-      const next = groups.get(group.key) || { label: group.label, tags: new Set() };
-      group.values.forEach((value) => next.tags.add(value));
-      groups.set(group.key, next);
-    });
-  });
-
-  return [...groups.values()].map((group) => ({ label: group.label, tags: [...group.tags] }));
-});
+const tagGroups = computed(() => getRecordFilterGroups(fields.value, entries.value));
 
 const filteredEntries = computed(() =>
   entries.value.filter((record) => {
-    const recordTags = getRecordMetaGroups(fields.value, record).flatMap((group) => group.values);
-    if (recordTagFilters.value.length && !recordTagFilters.value.every((tag) => recordTags.includes(tag))) {
+    if (!matchesActiveGroupFilters(recordTagFilters.value, getRecordMetaGroups(fields.value, record))) {
       return false;
     }
     if (recordSearch.value) {
@@ -113,10 +108,26 @@ function goHome() {
   router.push({ name: 'home' });
 }
 
-function toggleTag(tag) {
-  const index = recordTagFilters.value.indexOf(tag);
-  if (index >= 0) recordTagFilters.value.splice(index, 1);
-  else recordTagFilters.value.push(tag);
+function toggleTag({ groupKey, tag, type }) {
+  const current = [...(recordTagFilters.value[groupKey] || [])];
+  const index = current.indexOf(tag);
+
+  if (type === 'select') {
+    recordTagFilters.value = {
+      ...recordTagFilters.value,
+      [groupKey]: index >= 0 ? [] : [tag],
+    };
+  } else if (index >= 0) {
+    current.splice(index, 1);
+    recordTagFilters.value = { ...recordTagFilters.value, [groupKey]: current };
+  } else {
+    recordTagFilters.value = { ...recordTagFilters.value, [groupKey]: [...current, tag] };
+  }
+
+  if (!recordTagFilters.value[groupKey]?.length) {
+    const { [groupKey]: _removed, ...rest } = recordTagFilters.value;
+    recordTagFilters.value = rest;
+  }
 }
 
 function openRecordModal(mode, entry = null) {
@@ -272,7 +283,7 @@ watch(
   () => props.tableId,
   async () => {
     recordSearch.value = '';
-    recordTagFilters.value = [];
+    recordTagFilters.value = {};
     groupField.value = '';
     collapsedGroups.value = {};
     await loadRecords();
@@ -325,7 +336,7 @@ onUnmounted(() => {
           </option>
         </select>
       </div>
-      <TagGroups :groups="tagGroups" :active-tags="recordTagFilters" :color="vaultColor" @toggle="toggleTag" />
+      <TagGroups :groups="tagGroups" :active-filters="recordTagFilters" :color="vaultColor" @toggle="toggleTag" />
     </div>
 
     <div class="mosaic">

@@ -82,7 +82,7 @@ const normalizedEditableFields = computed(() =>
     normalizeField(
       {
         ...field,
-        options: field.type === 'select' ? parseSelectOptions(field.optionsText) : [],
+        options: ['select', 'multiselect'].includes(field.type) ? parseSelectOptions(field.optionsText) : [],
       },
       index,
     ),
@@ -181,6 +181,18 @@ function toggleMultiSelectValue(fieldKey, option) {
 
 function selectSingleValue(fieldKey, option) {
   form[fieldKey] = option;
+}
+
+function supportsOptions(field) {
+  return ['select', 'multiselect'].includes(field.type);
+}
+
+function supportsPlaceholder(field) {
+  return ['text', 'number', 'date', 'url', 'textarea'].includes(field.type);
+}
+
+function supportsMaxlength(field) {
+  return ['text', 'url', 'textarea'].includes(field.type);
 }
 
 function submit() {
@@ -327,7 +339,7 @@ function submit() {
               v-for="(field, index) in localFormFields"
               :key="field.key"
               class="field-row"
-              :class="{ wrap: ['select', 'multiselect'].includes(field.type) }"
+              :class="{ wrap: supportsOptions(field) || supportsPlaceholder(field) || supportsMaxlength(field) }"
             >
               <span class="field-badge field-badge-neutral">{{ field.key }}</span>
               <input v-model="field.label" type="text" placeholder="Field name" />
@@ -342,8 +354,29 @@ function submit() {
                 ✕
               </button>
               <div v-else style="width:22px;" />
-              <div v-if="['select', 'multiselect'].includes(field.type)" class="field-options">
+              <div v-if="supportsOptions(field)" class="field-options">
                 <input v-model="field.optionsText" type="text" placeholder="Options, separated by commas" />
+              </div>
+              <div
+                v-if="field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
+                class="field-properties"
+              >
+                <label v-if="supportsPlaceholder(field)" class="field-prop">
+                  <span>Placeholder</span>
+                  <input v-model="field.placeholder" type="text" placeholder="Optional helper text" />
+                </label>
+                <label v-if="supportsMaxlength(field)" class="field-prop field-prop-small">
+                  <span>Max</span>
+                  <input v-model="field.maxlength" type="number" min="1" placeholder="None" />
+                </label>
+                <label class="field-prop">
+                  <span>Row</span>
+                  <input v-model="field.row" type="text" placeholder="Optional row key" />
+                </label>
+                <label class="field-prop field-prop-toggle">
+                  <input v-model="field.compact" type="checkbox" />
+                  Compact
+                </label>
               </div>
             </div>
           </div>
@@ -367,7 +400,7 @@ function submit() {
               v-for="(field, index) in localEditableFields"
               :key="field.key"
               class="field-row"
-              :class="{ primary: index === 0, wrap: field.type === 'select' }"
+              :class="{ primary: index === 0, wrap: supportsOptions(field) || supportsPlaceholder(field) || supportsMaxlength(field) }"
             >
               <span v-if="index === 0" class="field-badge">Title</span>
               <span v-else style="color:var(--muted2);cursor:grab;font-size:14px;">⠿</span>
@@ -377,8 +410,29 @@ function submit() {
               </select>
               <div v-if="index === 0" style="width:22px;" />
               <button v-else class="field-del" @click="removeField(index)">✕</button>
-              <div v-if="field.type === 'select'" class="field-options">
+              <div v-if="supportsOptions(field)" class="field-options">
                 <input v-model="field.optionsText" type="text" placeholder="Options, separated by commas" />
+              </div>
+              <div
+                v-if="field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
+                class="field-properties"
+              >
+                <label v-if="supportsPlaceholder(field)" class="field-prop">
+                  <span>Placeholder</span>
+                  <input v-model="field.placeholder" type="text" placeholder="Optional helper text" />
+                </label>
+                <label v-if="supportsMaxlength(field)" class="field-prop field-prop-small">
+                  <span>Max</span>
+                  <input v-model="field.maxlength" type="number" min="1" placeholder="None" />
+                </label>
+                <label class="field-prop">
+                  <span>Row</span>
+                  <input v-model="field.row" type="text" placeholder="Optional row key" />
+                </label>
+                <label class="field-prop field-prop-toggle">
+                  <input v-model="field.compact" type="checkbox" />
+                  Compact
+                </label>
               </div>
             </div>
           </div>

@@ -10,7 +10,14 @@ import TableEditorModal from '../components/TableEditorModal.vue';
 import { getColor } from '../../../shared/utils/color';
 import { getAppMeta, listVaults, createVault, deleteVault, setAppMeta, updateVault } from '../services/tableVaultDb';
 import { exportAllData, exportTableData, importAllData, importTableData } from '../services/fileTransfers';
-import { getDefaultTableMetaFields, getTableMetaGroups, sanitizeTableMetaSchema, splitTableFormData } from '../../../shared/utils/tableVault';
+import {
+  getDefaultTableMetaFields,
+  getTableFilterGroups,
+  getTableMetaGroups,
+  matchesActiveGroupFilters,
+  sanitizeTableMetaSchema,
+  splitTableFormData,
+} from '../../../shared/utils/tableVault';
 
 const router = useRouter();
 const { toggleTheme, isLight, showToast } = inject('appShell');
@@ -18,7 +25,7 @@ const { toggleTheme, isLight, showToast } = inject('appShell');
 const vaults = ref([]);
 const homeSearch = ref('');
 const topSearchOpen = ref(false);
-const homeTagFilters = ref([]);
+const homeTagFilters = ref({});
 const createModalOpen = ref(false);
 const settingsOpen = ref(false);
 const selectedTable = ref(null);
@@ -26,21 +33,12 @@ const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
 const tableMetaSchema = ref(getDefaultTableMetaFields());
 
 const allTagGroups = computed(() => {
-  const groups = new Map();
-  vaults.value.forEach((vault) => {
-    getTableMetaGroups(tableMetaSchema.value, vault).forEach((group) => {
-      const next = groups.get(group.key) || { label: group.label, tags: new Set() };
-      group.values.forEach((value) => next.tags.add(value));
-      groups.set(group.key, next);
-    });
-  });
-  return [...groups.entries()].map(([key, group]) => ({ key, label: group.label, tags: [...group.tags] }));
+  return getTableFilterGroups(tableMetaSchema.value, vaults.value);
 });
 
 const filteredVaults = computed(() =>
   vaults.value.filter((vault) => {
-    const tableTags = getTableMetaGroups(tableMetaSchema.value, vault).flatMap((group) => group.values);
-    if (homeTagFilters.value.length && !homeTagFilters.value.every((tag) => tableTags.includes(tag))) {
+    if (!matchesActiveGroupFilters(homeTagFilters.value, getTableMetaGroups(tableMetaSchema.value, vault))) {
       return false;
     }
     if (homeSearch.value && !vault.name.toLowerCase().includes(homeSearch.value.toLowerCase())) {
@@ -56,10 +54,26 @@ async function loadHome() {
   tableMetaSchema.value = sanitizeTableMetaSchema(schemaMeta?.value || getDefaultTableMetaFields());
 }
 
-function toggleTag(tag) {
-  const index = homeTagFilters.value.indexOf(tag);
-  if (index >= 0) homeTagFilters.value.splice(index, 1);
-  else homeTagFilters.value.push(tag);
+function toggleTag({ groupKey, tag, type }) {
+  const current = [...(homeTagFilters.value[groupKey] || [])];
+  const index = current.indexOf(tag);
+
+  if (type === 'select') {
+    homeTagFilters.value = {
+      ...homeTagFilters.value,
+      [groupKey]: index >= 0 ? [] : [tag],
+    };
+  } else if (index >= 0) {
+    current.splice(index, 1);
+    homeTagFilters.value = { ...homeTagFilters.value, [groupKey]: current };
+  } else {
+    homeTagFilters.value = { ...homeTagFilters.value, [groupKey]: [...current, tag] };
+  }
+
+  if (!homeTagFilters.value[groupKey]?.length) {
+    const { [groupKey]: _removed, ...rest } = homeTagFilters.value;
+    homeTagFilters.value = rest;
+  }
 }
 
 function openTable(table) {
@@ -241,7 +255,7 @@ onUnmounted(() => {
     <div class="filter-bar">
       <TagGroups
         :groups="allTagGroups"
-        :active-tags="homeTagFilters"
+        :active-filters="homeTagFilters"
         :color="getColor('Lime', isLight)"
         @toggle="toggleTag"
       />

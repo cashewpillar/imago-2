@@ -3,6 +3,11 @@ export function parseSelectOptions(value) {
   return [...new Set(list.map((item) => String(item).trim()).filter(Boolean))];
 }
 
+function normalizeMaxlength(value) {
+  const next = Number.parseInt(value, 10);
+  return Number.isFinite(next) && next > 0 ? next : undefined;
+}
+
 export function getDefaultTableMetaFields() {
   return [
     { key: 'name', label: 'Name', type: 'text', row: 'identity', locked: true },
@@ -18,9 +23,11 @@ export function sanitizeTableMetaSchema(fields) {
       key: field?.key || `meta_${Date.now()}_${index}`,
       label: field?.label || 'Field',
       type: field?.type || 'text',
-      row: field?.row || null,
+      row: field?.row ? String(field.row).trim() || null : null,
       compact: !!field?.compact,
       locked: !!field?.locked,
+      placeholder: field?.placeholder ? String(field.placeholder) : '',
+      maxlength: normalizeMaxlength(field?.maxlength),
     };
     return {
       ...base,
@@ -43,6 +50,10 @@ export function normalizeField(field, index = 0) {
     key: field?.key || (index === 0 ? 'title' : `f_${Date.now()}_${index}`),
     label: field?.label || (index === 0 ? 'Title' : 'Field'),
     type: safeType,
+    row: field?.row ? String(field.row).trim() || null : null,
+    compact: !!field?.compact,
+    placeholder: field?.placeholder ? String(field.placeholder) : '',
+    maxlength: normalizeMaxlength(field?.maxlength),
     options: Array.isArray(field?.options)
       ? parseSelectOptions(field.options.join(','))
       : parseSelectOptions(field?.options || ''),
@@ -111,6 +122,43 @@ export function getTableMetaGroups(schema, table) {
     });
 }
 
+function buildFilterGroups(schema, items, getGroups) {
+  return (schema || [])
+    .filter((field) => field.type === 'select' || field.type === 'multiselect')
+    .map((field) => {
+      const tags = new Set(parseSelectOptions(field.options || []));
+
+      (items || []).forEach((item) => {
+        (getGroups(item).find((group) => group.key === field.key)?.values || []).forEach((value) => tags.add(value));
+      });
+
+      return {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        tags: [...tags],
+      };
+    })
+    .filter((group) => group.tags.length);
+}
+
+export function getTableFilterGroups(schema, tables) {
+  return buildFilterGroups(schema, tables, (table) => getTableMetaGroups(schema, table));
+}
+
+export function getRecordFilterGroups(fields, records) {
+  return buildFilterGroups(fields, records, (record) => getRecordMetaGroups(fields, record));
+}
+
+export function matchesActiveGroupFilters(activeFilters, groups) {
+  return Object.entries(activeFilters || {}).every(([groupKey, selection]) => {
+    const activeValues = Array.isArray(selection) ? selection.filter(Boolean).map(String) : [];
+    if (!activeValues.length) return true;
+    const groupValues = (groups.find((group) => group.key === groupKey)?.values || []).map(String);
+    return activeValues.every((value) => groupValues.includes(value));
+  });
+}
+
 export function safeJson(value, fallback) {
   if (typeof value !== 'string') return fallback;
   try {
@@ -146,7 +194,7 @@ export function mapSnapshotColumn(column, index) {
       key: column.field_key || `f_${Date.now()}_${index}`,
       label: column.label || 'Field',
       type: mappedType,
-      options: mappedType === 'select' ? safeJson(column.options_json, []) : [],
+      options: ['select', 'multiselect'].includes(mappedType) ? safeJson(column.options_json, []) : [],
     },
     index,
   );
@@ -187,6 +235,7 @@ export function buildImportPayload(snapshot) {
       safeFields.forEach((field) => {
         const raw = values[field.key];
         if (field.type === 'boolean') data[field.key] = raw === true || raw === 'true';
+        else if (field.type === 'multiselect') data[field.key] = Array.isArray(raw) ? raw : parseSelectOptions(raw || []);
         else if (field.type === 'number' || field.type === 'progress') data[field.key] = raw ?? '';
         else data[field.key] = raw ?? '';
       });
