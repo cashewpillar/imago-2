@@ -8,6 +8,7 @@ import TagGroups from '../../../shared/components/TagGroups.vue';
 import RecordCard from '../components/RecordCard.vue';
 import RecordFormModal from '../components/RecordFormModal.vue';
 import TableSettingsModal from '../../tables/components/TableSettingsModal.vue';
+import { features } from '../../../shared/constants/features';
 import { getColor } from '../../../shared/utils/color';
 import { getGroupValue, getRecordMetaGroups } from '../../../shared/utils/tableVault';
 import {
@@ -43,6 +44,7 @@ const collapsedGroups = ref({});
 const recordModal = ref({ open: false, mode: 'add', entryId: null, data: {} });
 const settingsOpen = ref(false);
 const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
+const showGroupingSelect = features.recordsGrouping;
 
 const vaultColor = computed(() => getColor(vault.value?.color || 'Lime', isLight.value));
 const fields = computed(() => vault.value?.fields || []);
@@ -76,7 +78,7 @@ const filteredEntries = computed(() =>
 );
 
 const groupedEntries = computed(() => {
-  if (!groupField.value) return [];
+  if (!showGroupingSelect || !groupField.value) return [];
   const groups = new Map();
 
   filteredEntries.value.forEach((record) => {
@@ -296,6 +298,9 @@ watch(
 );
 
 onMounted(() => {
+  if (!showGroupingSelect) {
+    groupField.value = '';
+  }
   window.addEventListener('click', onWindowClick);
 });
 
@@ -330,7 +335,7 @@ onUnmounted(() => {
     </AppTopbar>
 
     <div class="filter-bar">
-      <div class="filter-controls">
+      <div v-if="showGroupingSelect" class="filter-controls">
         <select v-model="groupField" class="fselect grouping-select">
           <option v-for="option in groupingOptions" :key="option.key" :value="option.key">
             {{ option.label }}
