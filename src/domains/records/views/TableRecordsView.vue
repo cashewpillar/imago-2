@@ -8,7 +8,6 @@ import TagGroups from '../../../shared/components/TagGroups.vue';
 import RecordCard from '../components/RecordCard.vue';
 import RecordFormModal from '../components/RecordFormModal.vue';
 import TableSettingsModal from '../../tables/components/TableSettingsModal.vue';
-import FieldsEditorModal from '../../tables/components/FieldsEditorModal.vue';
 import { getColor } from '../../../shared/utils/color';
 import { getGroupValue, getRecordMetaGroups } from '../../../shared/utils/tableVault';
 import {
@@ -43,7 +42,6 @@ const groupField = ref('');
 const collapsedGroups = ref({});
 const recordModal = ref({ open: false, mode: 'add', entryId: null, data: {} });
 const settingsOpen = ref(false);
-const fieldsOpen = ref(false);
 const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
 
 const vaultColor = computed(() => getColor(vault.value?.color || 'Lime', isLight.value));
@@ -126,7 +124,14 @@ function openRecordModal(mode, entry = null) {
   };
 }
 
-async function saveRecord(data) {
+async function saveRecord({ data, fields: nextFields }) {
+  if (!nextFields[0]?.label) {
+    showToast('Title field needs a name', 'error');
+    return;
+  }
+
+  await updateVault(props.tableId, { fields: nextFields });
+
   if (recordModal.value.mode === 'edit' && recordModal.value.entryId) {
     await updateEntry(recordModal.value.entryId, data);
     showToast('Updated!', 'success');
@@ -136,7 +141,7 @@ async function saveRecord(data) {
   }
 
   recordModal.value.open = false;
-  entries.value = await listEntries(props.tableId);
+  await loadRecords();
 }
 
 async function saveSettings(payload) {
@@ -155,18 +160,6 @@ async function saveSettings(payload) {
   await loadRecords();
   showToast('Saved!', 'success');
 }
-
-async function saveFields(nextFields) {
-  if (!nextFields[0]?.label) {
-    showToast('Title field needs a name', 'error');
-    return;
-  }
-  await updateVault(props.tableId, { fields: nextFields });
-  fieldsOpen.value = false;
-  await loadRecords();
-  showToast('Fields updated!', 'success');
-}
-
 async function handleDeleteTable() {
   if (!window.confirm('Delete this table and all its records?')) return;
   await deleteVault(props.tableId);
@@ -327,9 +320,6 @@ onUnmounted(() => {
         <button class="btn btn-ghost btn-icon" title="Search records" @click="topSearchOpen = !topSearchOpen">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         </button>
-        <button class="btn btn-ghost btn-icon" title="Edit fields" @click="fieldsOpen = true">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x=".5" y=".5" width="12" height="12" rx="2.5" stroke="currentColor"/><path d="M3.5 6.5h6M6.5 3.5v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-        </button>
         <button class="btn btn-ghost btn-icon" title="Table settings" @click="settingsOpen = true">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 1v1.2M6.5 10.8V12M12 6.5h-1.2M2.2 6.5H1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         </button>
@@ -420,13 +410,6 @@ onUnmounted(() => {
       @save="saveSettings"
       @export="handleExportTable"
       @delete="handleDeleteTable"
-    />
-
-    <FieldsEditorModal
-      :open="fieldsOpen"
-      :fields="fields"
-      @close="fieldsOpen = false"
-      @save="saveFields"
     />
 
     <ContextMenu
