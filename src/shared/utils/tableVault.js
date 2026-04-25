@@ -290,6 +290,26 @@ export function matchesActiveGroupFilters(activeFilters, groups) {
   });
 }
 
+export function sanitizeGroupFilters(activeFilters, groups) {
+  const groupMap = new Map(
+    (groups || []).map((group) => [
+      group.key,
+      new Set((group.tags || []).map((tag) => (typeof tag === 'object' ? tag.value : tag)).filter(Boolean)),
+    ]),
+  );
+
+  return Object.fromEntries(
+    Object.entries(activeFilters || {})
+      .map(([groupKey, selection]) => {
+        const allowed = groupMap.get(groupKey);
+        if (!allowed) return [groupKey, []];
+        const values = Array.isArray(selection) ? selection.filter((value) => allowed.has(value)) : [];
+        return [groupKey, values];
+      })
+      .filter(([, selection]) => selection.length),
+  );
+}
+
 export function safeJson(value, fallback) {
   if (typeof value !== 'string') return fallback;
   try {

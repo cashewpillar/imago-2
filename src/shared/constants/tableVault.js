@@ -23,3 +23,5 @@ export const FIELD_TYPES = [
   'color',
 ];
 export const THEME_KEY = 'tablevault-theme';
+export const HOME_TAG_FILTERS_KEY = 'tablevault-home-tag-filters';
+export const RECORD_TAG_FILTERS_KEY_PREFIX = 'tablevault-record-tag-filters:';

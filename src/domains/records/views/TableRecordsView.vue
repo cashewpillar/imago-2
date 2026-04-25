@@ -10,6 +10,7 @@ import RecordFormModal from '../components/RecordFormModal.vue';
 import ImportRecordsModal from '../components/ImportRecordsModal.vue';
 import TableEditorModal from '../../tables/components/TableEditorModal.vue';
 import { features } from '../../../shared/constants/features';
+import { RECORD_TAG_FILTERS_KEY_PREFIX } from '../../../shared/constants/tableVault';
 import { getColor } from '../../../shared/utils/color';
 import {
   coerceValueForField,
@@ -21,6 +22,7 @@ import {
   mergeFieldOptions,
   matchesActiveGroupFilters,
   normalizeField,
+  sanitizeGroupFilters,
   sanitizeTableMetaSchema,
   splitTableFormData,
   IMPORT_TARGET_CREATE,
@@ -55,6 +57,7 @@ const entries = ref([]);
 const recordSearch = ref('');
 const topSearchOpen = ref(false);
 const recordTagFilters = ref({});
+const recordFiltersReady = ref(false);
 const groupField = ref('');
 const collapsedGroups = ref({});
 const recordModal = ref({ open: false, mode: 'add', entryId: null, data: {} });
@@ -68,6 +71,18 @@ const vaultColor = computed(() => getColor(vault.value?.color || 'Lime', isLight
 const fields = computed(() => vault.value?.fields || []);
 
 const tagGroups = computed(() => getRecordFilterGroups(fields.value, entries.value));
+
+function getRecordTagFiltersKey(tableId) {
+  return `${RECORD_TAG_FILTERS_KEY_PREFIX}${tableId}`;
+}
+
+function loadSavedRecordTagFilters(tableId) {
+  try {
+    return JSON.parse(localStorage.getItem(getRecordTagFiltersKey(tableId)) || '{}');
+  } catch {
+    return {};
+  }
+}
 
 const filteredEntries = computed(() =>
   entries.value.filter((record) => {
@@ -378,13 +393,34 @@ function onWindowClick() {
 watch(
   () => props.tableId,
   async () => {
+    recordFiltersReady.value = false;
     recordSearch.value = '';
     recordTagFilters.value = {};
     groupField.value = '';
     collapsedGroups.value = {};
     await loadRecords();
+    recordTagFilters.value = sanitizeGroupFilters(loadSavedRecordTagFilters(props.tableId), tagGroups.value);
+    recordFiltersReady.value = true;
   },
   { immediate: true },
+);
+
+watch(
+  tagGroups,
+  (groups) => {
+    if (!recordFiltersReady.value) return;
+    recordTagFilters.value = sanitizeGroupFilters(recordTagFilters.value, groups);
+  },
+  { immediate: true, deep: true },
+);
+
+watch(
+  [() => props.tableId, recordTagFilters],
+  ([tableId, filters]) => {
+    if (!recordFiltersReady.value) return;
+    localStorage.setItem(getRecordTagFiltersKey(tableId), JSON.stringify(filters));
+  },
+  { deep: true },
 );
 
 onMounted(() => {

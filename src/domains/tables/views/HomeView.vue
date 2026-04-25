@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AppTopbar from '../../../shared/components/AppTopbar.vue';
 import ContextMenu from '../../../shared/components/ContextMenu.vue';
@@ -7,11 +7,13 @@ import EmptyState from '../../../shared/components/EmptyState.vue';
 import TagGroups from '../../../shared/components/TagGroups.vue';
 import TableCard from '../components/TableCard.vue';
 import TableEditorModal from '../components/TableEditorModal.vue';
+import { HOME_TAG_FILTERS_KEY } from '../../../shared/constants/tableVault';
 import { getColor } from '../../../shared/utils/color';
 import { getAppMeta, listVaults, createVault, deleteVault, setAppMeta, updateVault } from '../services/tableVaultDb';
 import { exportAllData, exportTableData, importAllData, importTableData } from '../services/fileTransfers';
 import {
   getDefaultTableMetaFields,
+  sanitizeGroupFilters,
   getTableFilterGroups,
   getTableMetaGroups,
   matchesActiveGroupFilters,
@@ -35,6 +37,14 @@ const tableMetaSchema = ref(getDefaultTableMetaFields());
 const allTagGroups = computed(() => {
   return getTableFilterGroups(tableMetaSchema.value, vaults.value);
 });
+
+function loadSavedHomeTagFilters() {
+  try {
+    return JSON.parse(localStorage.getItem(HOME_TAG_FILTERS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
 
 const filteredVaults = computed(() =>
   vaults.value.filter((vault) => {
@@ -214,6 +224,7 @@ function onWindowClick() {
 }
 
 onMounted(async () => {
+  homeTagFilters.value = loadSavedHomeTagFilters();
   await loadHome();
   window.addEventListener('click', onWindowClick);
 });
@@ -221,6 +232,22 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('click', onWindowClick);
 });
+
+watch(
+  allTagGroups,
+  (groups) => {
+    homeTagFilters.value = sanitizeGroupFilters(homeTagFilters.value, groups);
+  },
+  { immediate: true, deep: true },
+);
+
+watch(
+  homeTagFilters,
+  (filters) => {
+    localStorage.setItem(HOME_TAG_FILTERS_KEY, JSON.stringify(filters));
+  },
+  { deep: true },
+);
 </script>
 
 <template>
