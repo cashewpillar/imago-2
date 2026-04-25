@@ -9,13 +9,14 @@ const props = defineProps({
   table: { type: Object, default: null },
   isLight: { type: Boolean, default: false },
   schema: { type: Array, default: () => [] },
+  initialData: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['close', 'save']);
 
 const formFields = computed(() => props.schema);
 
-const initialData = computed(() => getTableFormData(props.table, props.schema));
+const initialData = computed(() => (props.table ? getTableFormData(props.table, props.schema) : props.initialData));
 
 </script>
 

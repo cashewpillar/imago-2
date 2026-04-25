@@ -13,6 +13,7 @@ import { features } from '../../../shared/constants/features';
 import { RECORD_TAG_FILTERS_KEY_PREFIX } from '../../../shared/constants/tableVault';
 import { getColor } from '../../../shared/utils/color';
 import {
+  buildDataFromActiveFilters,
   coerceValueForField,
   createImportedField,
   getDefaultTableMetaFields,
@@ -160,7 +161,7 @@ function openRecordModal(mode, entry = null) {
     open: true,
     mode,
     entryId: entry?.id || null,
-    data: entry?.data || {},
+    data: mode === 'add' ? buildDataFromActiveFilters(recordTagFilters.value, fields.value) : entry?.data || {},
   };
 }
 

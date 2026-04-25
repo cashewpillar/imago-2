@@ -12,6 +12,7 @@ import { getColor } from '../../../shared/utils/color';
 import { getAppMeta, listVaults, createVault, deleteVault, setAppMeta, updateVault } from '../services/tableVaultDb';
 import { exportAllData, exportTableData, importAllData, importTableData } from '../services/fileTransfers';
 import {
+  buildDataFromActiveFilters,
   getDefaultTableMetaFields,
   sanitizeGroupFilters,
   getTableFilterGroups,
@@ -37,6 +38,8 @@ const tableMetaSchema = ref(getDefaultTableMetaFields());
 const allTagGroups = computed(() => {
   return getTableFilterGroups(tableMetaSchema.value, vaults.value);
 });
+
+const createTableInitialData = computed(() => buildDataFromActiveFilters(homeTagFilters.value, tableMetaSchema.value));
 
 function loadSavedHomeTagFilters() {
   try {
@@ -315,6 +318,7 @@ watch(
       mode="create"
       :is-light="isLight"
       :schema="tableMetaSchema"
+      :initial-data="createTableInitialData"
       @close="createModalOpen = false"
       @save="handleCreateTable"
     />

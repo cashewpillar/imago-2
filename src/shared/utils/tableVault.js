@@ -310,6 +310,28 @@ export function sanitizeGroupFilters(activeFilters, groups) {
   );
 }
 
+export function buildDataFromActiveFilters(activeFilters, schema) {
+  const data = {};
+
+  (schema || []).forEach((field) => {
+    const selected = Array.isArray(activeFilters?.[field.key]) ? activeFilters[field.key] : [];
+    if (!selected.length) return;
+
+    const values = selected.filter((value) => value !== EMPTY_FILTER_VALUE);
+
+    if (field.type === 'multiselect') {
+      data[field.key] = values;
+      return;
+    }
+
+    if (field.type === 'select') {
+      data[field.key] = values[0] || '';
+    }
+  });
+
+  return data;
+}
+
 export function safeJson(value, fallback) {
   if (typeof value !== 'string') return fallback;
   try {
