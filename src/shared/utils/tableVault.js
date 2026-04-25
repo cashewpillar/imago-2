@@ -4,6 +4,8 @@ export function parseSelectOptions(value) {
 }
 
 export const EMPTY_FILTER_VALUE = '__empty__';
+export const IMPORT_TARGET_SKIP = '__skip__';
+export const IMPORT_TARGET_CREATE = '__create__';
 
 function normalizeMaxlength(value) {
   const next = Number.parseInt(value, 10);
@@ -67,6 +69,123 @@ export function normalizeField(field, index = 0) {
 
   if (!['select', 'multiselect'].includes(next.type)) next.options = [];
   return next;
+}
+
+function slugifyFieldKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+export function ensureUniqueFieldKey(fields, desiredKey, fallbackLabel = 'field') {
+  const taken = new Set((fields || []).map((field) => field.key));
+  const base = slugifyFieldKey(desiredKey || fallbackLabel) || 'field';
+  if (!taken.has(base)) return base;
+
+  let index = 2;
+  while (taken.has(`${base}_${index}`)) index += 1;
+  return `${base}_${index}`;
+}
+
+export function createImportedField(sourceField, existingFields) {
+  const normalized = normalizeField(sourceField, existingFields.length);
+  return {
+    ...normalized,
+    key: ensureUniqueFieldKey(existingFields, normalized.key || normalized.label, normalized.label),
+  };
+}
+
+export function getDefaultImportTarget(sourceField, targetFields, index = 0) {
+  const list = targetFields || [];
+  if (!list.length) return IMPORT_TARGET_SKIP;
+
+  if (index === 0 && list[0]?.key) return list[0].key;
+
+  const byKey = list.find((field) => field.key === sourceField?.key);
+  if (byKey) return byKey.key;
+
+  const label = String(sourceField?.label || '').trim().toLowerCase();
+  const byLabel = list.find((field) => String(field.label || '').trim().toLowerCase() === label);
+  if (byLabel) return byLabel.key;
+
+  return IMPORT_TARGET_CREATE;
+}
+
+function normalizeBoolean(value) {
+  if (value === true || value === false) return value;
+  if (typeof value === 'number') return value !== 0;
+  const text = String(value || '').trim().toLowerCase();
+  if (!text) return false;
+  return ['true', 'yes', 'y', '1', 'done'].includes(text);
+}
+
+export function coerceValueForField(rawValue, targetField) {
+  if (!targetField) return undefined;
+
+  if (targetField.type === 'multiselect') {
+    if (Array.isArray(rawValue)) return rawValue.map(String).filter(Boolean);
+    return parseSelectOptions(rawValue || []);
+  }
+
+  if (targetField.type === 'select') {
+    if (Array.isArray(rawValue)) return rawValue.find(Boolean) ? String(rawValue.find(Boolean)) : '';
+    return rawValue === undefined || rawValue === null || rawValue === '' ? '' : String(rawValue);
+  }
+
+  if (targetField.type === 'boolean') {
+    if (rawValue === undefined || rawValue === null || rawValue === '') return undefined;
+    return normalizeBoolean(rawValue);
+  }
+
+  if (targetField.type === 'number' || targetField.type === 'progress') {
+    if (rawValue === undefined || rawValue === null || rawValue === '') return '';
+    const next = Number(rawValue);
+    return Number.isFinite(next) ? next : '';
+  }
+
+  if (targetField.type === 'color' || targetField.type === 'icon') {
+    return rawValue === undefined || rawValue === null ? '' : String(rawValue);
+  }
+
+  if (targetField.type === 'date') {
+    if (!rawValue) return '';
+    if (typeof rawValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawValue)) return rawValue;
+    const date = new Date(rawValue);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
+  }
+
+  if (targetField.type === 'url' || targetField.type === 'textarea' || targetField.type === 'text') {
+    return rawValue === undefined || rawValue === null ? '' : String(rawValue);
+  }
+
+  return rawValue;
+}
+
+export function mergeFieldOptions(field, values) {
+  if (!field || !['select', 'multiselect'].includes(field.type)) return field;
+  return {
+    ...field,
+    options: parseSelectOptions([...(field.options || []), ...(values || [])]),
+  };
+}
+
+export function getFieldSampleValues(entries, fieldKey, limit = 3) {
+  const values = [];
+  for (const entry of entries || []) {
+    const raw = entry?.data?.[fieldKey];
+    if (raw === undefined || raw === null || raw === '') continue;
+    if (Array.isArray(raw)) {
+      const label = raw.filter(Boolean).join(', ');
+      if (label) values.push(label);
+    } else {
+      values.push(String(raw));
+    }
+    if (values.length >= limit) break;
+  }
+  return values;
 }
 
 export function normalizeVault(vault) {

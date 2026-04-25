@@ -38,6 +38,18 @@ function pickJsonFile() {
   });
 }
 
+async function readTableBackupFile() {
+  const file = await pickJsonFile();
+  if (!file) return { imported: false, backup: null };
+
+  const backup = JSON.parse(await file.text());
+  if (backup.type !== 'imago-tablevault-table-backup' || !backup.vault) {
+    throw new Error('Invalid table backup file');
+  }
+
+  return { imported: true, backup };
+}
+
 export async function exportAllData() {
   const payload = await exportAll();
   triggerDownload(`tablevault-full-backup-${new Date().toISOString().slice(0, 10)}.json`, payload);
@@ -63,15 +75,15 @@ export async function exportTableData(vault) {
 }
 
 export async function importTableData() {
-  const file = await pickJsonFile();
-  if (!file) return { imported: false };
-  const backup = JSON.parse(await file.text());
-  if (backup.type !== 'imago-tablevault-table-backup' || !backup.vault) {
-    throw new Error('Invalid table backup file');
-  }
+  const { imported, backup } = await readTableBackupFile();
+  if (!imported) return { imported: false };
 
   const newId = await importTableBackup(backup);
   return { imported: true, tableName: backup.vault.name, newId };
+}
+
+export async function pickTableBackupData() {
+  return readTableBackupFile();
 }
 
 export async function importSnapshotFile(file) {

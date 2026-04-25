@@ -116,6 +116,32 @@ export async function createEntry(vaultId, data) {
   });
 }
 
+export async function createEntries(vaultId, items) {
+  const rows = (items || []).map((item) => ({
+    tableId: Number(vaultId),
+    data: toPlainData(item.data || {}),
+    createdAt: item.createdAt || Date.now(),
+  }));
+  if (!rows.length) return 0;
+  await db.entries.bulkAdd(rows);
+  return rows.length;
+}
+
+export async function importEntriesIntoVault(vaultId, fields, items) {
+  const rows = (items || []).map((item) => ({
+    tableId: Number(vaultId),
+    data: toPlainData(item.data || {}),
+    createdAt: item.createdAt || Date.now(),
+  }));
+
+  await db.transaction('rw', db.vaults, db.entries, async () => {
+    await db.vaults.update(Number(vaultId), { fields: toPlainData(fields || []) });
+    if (rows.length) await db.entries.bulkAdd(rows);
+  });
+
+  return rows.length;
+}
+
 export async function updateEntry(entryId, data) {
   await db.entries.update(Number(entryId), { data: toPlainData(data) });
 }

@@ -7,17 +7,24 @@ import EmptyState from '../../../shared/components/EmptyState.vue';
 import TagGroups from '../../../shared/components/TagGroups.vue';
 import RecordCard from '../components/RecordCard.vue';
 import RecordFormModal from '../components/RecordFormModal.vue';
+import ImportRecordsModal from '../components/ImportRecordsModal.vue';
 import TableEditorModal from '../../tables/components/TableEditorModal.vue';
 import { features } from '../../../shared/constants/features';
 import { getColor } from '../../../shared/utils/color';
 import {
+  coerceValueForField,
+  createImportedField,
   getDefaultTableMetaFields,
   getGroupValue,
   getRecordFilterGroups,
   getRecordMetaGroups,
+  mergeFieldOptions,
   matchesActiveGroupFilters,
+  normalizeField,
   sanitizeTableMetaSchema,
   splitTableFormData,
+  IMPORT_TARGET_CREATE,
+  IMPORT_TARGET_SKIP,
 } from '../../../shared/utils/tableVault';
 import {
   createEntry,
@@ -25,11 +32,13 @@ import {
   getAppMeta,
   getEntry,
   getVault,
+  importEntriesIntoVault,
   listEntries,
   setAppMeta,
   updateEntry,
   updateVault,
 } from '../../tables/services/tableVaultDb';
+import { pickTableBackupData } from '../../tables/services/fileTransfers';
 
 const props = defineProps({
   tableId: {
@@ -49,6 +58,7 @@ const recordTagFilters = ref({});
 const groupField = ref('');
 const collapsedGroups = ref({});
 const recordModal = ref({ open: false, mode: 'add', entryId: null, data: {} });
+const importModal = ref({ open: false, backup: null });
 const settingsOpen = ref(false);
 const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
 const showGroupingSelect = features.recordsGrouping;
@@ -180,6 +190,92 @@ async function saveSettings({ data, formFields }) {
   await loadRecords();
   showToast('Saved!', 'success');
 }
+
+async function openImportRecords() {
+  try {
+    const result = await pickTableBackupData();
+    if (!result?.imported || !result.backup) return;
+    importModal.value = { open: true, backup: result.backup };
+  } catch (error) {
+    showToast(error.message || 'Import failed', 'error');
+  }
+}
+
+function closeImportModal() {
+  importModal.value = { open: false, backup: null };
+}
+
+async function handleImportRecords({ backup, mappings }) {
+  if (!vault.value) return;
+
+  const sourceFields = (backup?.vault?.fields || []).map((field, index) => normalizeField(field, index));
+  const mappingBySource = new Map(mappings.map((item) => [item.sourceKey, item.targetKey]));
+  let nextFields = [...fields.value];
+  const resolvedTargetBySource = new Map();
+
+  sourceFields.forEach((sourceField, index) => {
+    const targetKey = mappingBySource.get(sourceField.key) || IMPORT_TARGET_SKIP;
+    if (targetKey === IMPORT_TARGET_SKIP) return;
+    if (targetKey === IMPORT_TARGET_CREATE) {
+      const createdField = createImportedField(sourceField, nextFields);
+      nextFields = [...nextFields, createdField];
+      resolvedTargetBySource.set(sourceField.key, createdField.key);
+      return;
+    }
+    resolvedTargetBySource.set(sourceField.key, targetKey);
+  });
+
+  const titleKey = nextFields[0]?.key;
+  if (!titleKey || ![...resolvedTargetBySource.values()].includes(titleKey)) {
+    showToast('Map at least one source field to the title field', 'error');
+    return;
+  }
+
+  const importedEntries = (backup?.entries || []).map((entry) => {
+    const data = {};
+
+    sourceFields.forEach((sourceField) => {
+      const targetKey = resolvedTargetBySource.get(sourceField.key);
+      if (!targetKey) return;
+      const targetField = nextFields.find((field) => field.key === targetKey);
+      if (!targetField) return;
+
+      const value = coerceValueForField(entry?.data?.[sourceField.key], targetField);
+      if (targetField.type === 'multiselect') {
+        if (value?.length) data[targetKey] = value;
+      } else if (value !== undefined && value !== null && value !== '') {
+        data[targetKey] = value;
+      } else if (targetField.type === 'boolean' && value === false) {
+        data[targetKey] = false;
+      }
+    });
+
+    return {
+      data,
+      createdAt: entry?.createdAt || Date.now(),
+    };
+  });
+
+  const optionValuesByTarget = new Map();
+  importedEntries.forEach((entry) => {
+    Object.entries(entry.data || {}).forEach(([key, value]) => {
+      const field = nextFields.find((item) => item.key === key);
+      if (!field || !['select', 'multiselect'].includes(field.type)) return;
+      const list = optionValuesByTarget.get(key) || [];
+      if (Array.isArray(value)) list.push(...value);
+      else if (value) list.push(value);
+      optionValuesByTarget.set(key, list);
+    });
+  });
+
+  nextFields = nextFields.map((field) => mergeFieldOptions(field, optionValuesByTarget.get(field.key) || []));
+
+  const created = await importEntriesIntoVault(props.tableId, nextFields, importedEntries);
+  closeImportModal();
+  await loadRecords();
+  showToast(`Imported ${created} record${created === 1 ? '' : 's'}`, 'success');
+}
+
 function toggleGroup(name) {
   collapsedGroups.value = {
     ...collapsedGroups.value,
@@ -322,6 +418,9 @@ onUnmounted(() => {
         <button class="btn btn-ghost btn-icon" title="Table settings" @click="settingsOpen = true">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 1v1.2M6.5 10.8V12M12 6.5h-1.2M2.2 6.5H1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         </button>
+        <button class="btn btn-ghost btn-icon" title="Import records into this table" @click="openImportRecords">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v6.2M4 5.4l2.5 2.5 2.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10.5h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M1.5 11.5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".45"/></svg>
+        </button>
         <button class="btn btn-ghost btn-icon" title="Toggle theme" @click="toggleTheme">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="2.4" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 1v1.4M6.5 10.6V12M12 6.5h-1.4M2.4 6.5H1M10.4 2.6l-1 1M3.6 9.4l-1 1M10.4 10.4l-1-1M3.6 3.6l-1-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         </button>
@@ -399,6 +498,14 @@ onUnmounted(() => {
       :initial-data="recordModal.data"
       @close="recordModal.open = false"
       @save="saveRecord"
+    />
+
+    <ImportRecordsModal
+      :open="importModal.open"
+      :backup="importModal.backup"
+      :target-fields="fields"
+      @close="closeImportModal"
+      @import="handleImportRecords"
     />
 
     <TableEditorModal
