@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { FIELD_TYPES } from '../constants/tableVault';
 import { getColor } from '../utils/color';
 import { normalizeField, parseSelectOptions, sanitizeTableMetaSchema } from '../utils/tableVault';
@@ -195,6 +195,25 @@ function supportsMaxlength(field) {
   return ['text', 'url', 'textarea'].includes(field.type);
 }
 
+function adjustTextareaHeight(e) {
+  const el = e?.target || e;
+  if (!el || !el.style) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+
+watch(
+  () => [props.open, activePane.value],
+  async ([isOpen]) => {
+    if (isOpen) {
+      await nextTick();
+      document.querySelectorAll('.ftextarea').forEach((el) => {
+        adjustTextareaHeight(el);
+      });
+    }
+  },
+);
+
 function submit() {
   const data = {};
   normalizedFormFields.value.forEach((field) => {
@@ -253,6 +272,7 @@ function submit() {
               v-if="field.type === 'textarea'"
               v-model="form[field.key]"
               class="ftextarea"
+              @input="adjustTextareaHeight"
             />
 
             <div v-else-if="field.type === 'boolean'" style="display:flex;gap:16px;margin-top:2px;">
