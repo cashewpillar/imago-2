@@ -1,0 +1,149 @@
+export function parseSelectOptions(value) {
+  const list = Array.isArray(value) ? value : String(value || '').split(',');
+  return [...new Set(list.map((item) => String(item).trim()).filter(Boolean))];
+}
+
+export function normalizeField(field, index = 0) {
+  const incomingType = field?.type === 'status' ? 'select' : field?.type;
+  const safeType = incomingType === 'rating' ? 'number' : incomingType || 'text';
+  const next = {
+    ...field,
+    key: field?.key || (index === 0 ? 'title' : `f_${Date.now()}_${index}`),
+    label: field?.label || (index === 0 ? 'Title' : 'Field'),
+    type: safeType,
+    options: Array.isArray(field?.options)
+      ? parseSelectOptions(field.options.join(','))
+      : parseSelectOptions(field?.options || ''),
+  };
+
+  if (next.type !== 'select') next.options = [];
+  return next;
+}
+
+export function normalizeVault(vault) {
+  return {
+    ...vault,
+    fields: (vault.fields || []).map((field, index) => normalizeField(field, index)),
+    tags: Array.isArray(vault.tags) ? vault.tags.filter(Boolean) : [],
+  };
+}
+
+export function safeJson(value, fallback) {
+  if (typeof value !== 'string') return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+export function parseSnapshotTime(...values) {
+  for (const value of values) {
+    if (!value) continue;
+    const time = new Date(value).getTime();
+    if (Number.isFinite(time)) return time;
+  }
+  return Date.now();
+}
+
+export function mapSnapshotFieldType(type) {
+  if (type === 'status') return 'select';
+  if (['text', 'number', 'date', 'url', 'boolean', 'select', 'progress', 'textarea'].includes(type)) {
+    return type;
+  }
+  return null;
+}
+
+export function mapSnapshotColumn(column, index) {
+  if (column.linked_tracker_id) return null;
+  const mappedType = mapSnapshotFieldType(column.field_type);
+  if (!mappedType) return null;
+  return normalizeField(
+    {
+      key: column.field_key || `f_${Date.now()}_${index}`,
+      label: column.label || 'Field',
+      type: mappedType,
+      options: mappedType === 'select' ? safeJson(column.options_json, []) : [],
+    },
+    index,
+  );
+}
+
+export function buildImportPayload(snapshot) {
+  const tables = Array.isArray(snapshot?.tables) ? snapshot.tables : [];
+  const columns = Array.isArray(snapshot?.tracker_columns) ? snapshot.tracker_columns : [];
+  const rows = Array.isArray(snapshot?.rows) ? snapshot.rows : [];
+  const columnsByTracker = new Map();
+  const rowsByTracker = new Map();
+
+  columns.forEach((column) => {
+    const list = columnsByTracker.get(column.tracker_id) || [];
+    list.push(column);
+    columnsByTracker.set(column.tracker_id, list);
+  });
+
+  rows.forEach((row) => {
+    const list = rowsByTracker.get(row.tracker_id) || [];
+    list.push(row);
+    rowsByTracker.set(row.tracker_id, list);
+  });
+
+  let entryCount = 0;
+  const vaults = tables.map((table) => {
+    const meta = safeJson(table.table_meta_json, {});
+    const fields = (columnsByTracker.get(table.id) || [])
+      .slice()
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((column, index) => mapSnapshotColumn(column, index))
+      .filter(Boolean);
+    const safeFields = fields.length ? fields : [{ key: 'title', label: 'Title', type: 'text', options: [] }];
+    const entries = (rowsByTracker.get(table.id) || []).map((row) => {
+      const values = safeJson(row.values_json, {});
+      const data = {};
+
+      safeFields.forEach((field) => {
+        const raw = values[field.key];
+        if (field.type === 'boolean') data[field.key] = raw === true || raw === 'true';
+        else if (field.type === 'number' || field.type === 'progress') data[field.key] = raw ?? '';
+        else data[field.key] = raw ?? '';
+      });
+
+      return {
+        data,
+        createdAt: parseSnapshotTime(row.created_at, row.updated_at),
+      };
+    });
+
+    entryCount += entries.length;
+    rowsByTracker.set(table.id, entries);
+
+    return {
+      _sourceTrackerId: table.id,
+      name: table.name || 'Untitled',
+      icon: meta.icon || '📋',
+      color: meta.color || 'Lime',
+      fields: safeFields,
+      tags: table.tag ? [table.tag] : [],
+      createdAt: parseSnapshotTime(table.created_at),
+    };
+  });
+
+  return { vaults, entriesByTracker: rowsByTracker, entryCount };
+}
+
+export function getRecordMetaGroups(fields, record) {
+  return fields
+    .filter((field) => field.type === 'select')
+    .flatMap((field) => {
+      const value = record?.data?.[field.key];
+      if (value === undefined || value === null || value === '') return [];
+      return [{ key: field.key, label: field.label, values: [String(value)] }];
+    });
+}
+
+export function getGroupValue(fields, record, groupKey) {
+  const field = fields.find((item) => item.key === groupKey && item.type === 'select');
+  if (!field) return '';
+  const value = record?.data?.[field.key];
+  return value !== undefined && value !== null && value !== '' ? String(value) : 'Ungrouped';
+}
