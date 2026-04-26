@@ -134,7 +134,18 @@ function goHome() {
   router.push({ name: 'home' });
 }
 
-function toggleTag({ groupKey, tag, type }) {
+function toggleTag({ groupKey, tag, type, nextValue }) {
+  if (nextValue !== undefined) {
+    recordTagFilters.value = {
+      ...recordTagFilters.value,
+      [groupKey]: nextValue,
+    };
+    if (!recordTagFilters.value[groupKey]?.length) {
+      const { [groupKey]: _removed, ...rest } = recordTagFilters.value;
+      recordTagFilters.value = rest;
+    }
+    return;
+  }
   const current = [...(recordTagFilters.value[groupKey] || [])];
   const index = current.indexOf(tag);
 

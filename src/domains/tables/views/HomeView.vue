@@ -67,7 +67,18 @@ async function loadHome() {
   tableMetaSchema.value = sanitizeTableMetaSchema(schemaMeta?.value || getDefaultTableMetaFields());
 }
 
-function toggleTag({ groupKey, tag, type }) {
+function toggleTag({ groupKey, tag, type, nextValue }) {
+  if (nextValue !== undefined) {
+    homeTagFilters.value = {
+      ...homeTagFilters.value,
+      [groupKey]: nextValue,
+    };
+    if (!homeTagFilters.value[groupKey]?.length) {
+      const { [groupKey]: _removed, ...rest } = homeTagFilters.value;
+      homeTagFilters.value = rest;
+    }
+    return;
+  }
   const current = [...(homeTagFilters.value[groupKey] || [])];
   const index = current.indexOf(tag);
 
