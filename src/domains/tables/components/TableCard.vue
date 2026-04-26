@@ -17,14 +17,26 @@ const props = defineProps({
   },
 });
 
-defineEmits(['open']);
+const emit = defineEmits(['open', 'menu']);
 
 const metaGroups = computed(() => getTableMetaGroups(props.metaSchema, props.table));
+
+function onMenuClick(e) {
+  e.stopPropagation();
+  emit('menu', {
+    table: props.table,
+    x: e.clientX,
+    y: e.clientY
+  });
+}
 </script>
 
 <template>
   <div class="table-card" @click="$emit('open', table)">
     <div class="tc-stripe" :style="{ background: color.val }" />
+    <button class="tc-menu" style="position: absolute; top: 8px; right: 8px; z-index: 10;" @click="onMenuClick">
+      ⋮
+    </button>
     <div class="tc-icon">{{ table.icon || '📋' }}</div>
     <div class="tc-name">{{ table.name }}</div>
     <div v-if="metaGroups.length" class="tc-tags">

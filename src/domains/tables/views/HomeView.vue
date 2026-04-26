@@ -32,7 +32,36 @@ const homeTagFilters = ref({});
 const createModalOpen = ref(false);
 const settingsOpen = ref(false);
 const selectedTable = ref(null);
+const menuOpen = ref(false);
+const menuPosition = ref({ x: 0, y: 0 });
 const tableMetaSchema = ref(getDefaultTableMetaFields());
+
+const menuItems = [
+  { label: 'Open', action: 'open' },
+  { label: 'Settings', action: 'settings' },
+  { label: 'Export', action: 'export' },
+  { sep: true },
+  { label: 'Delete', action: 'delete', danger: true },
+];
+
+function handleTableMenu({ table, x, y }) {
+  selectedTable.value = table;
+  menuPosition.value = { x, y };
+  menuOpen.value = true;
+}
+
+function onMenuSelect(item) {
+  menuOpen.value = false;
+  if (item.action === 'open') {
+    openTable(selectedTable.value);
+  } else if (item.action === 'settings') {
+    settingsOpen.value = true;
+  } else if (item.action === 'export') {
+    handleExportTable(selectedTable.value);
+  } else if (item.action === 'delete') {
+    handleDeleteTable(selectedTable.value);
+  }
+}
 
 const allTagGroups = computed(() => {
   return getTableFilterGroups(tableMetaSchema.value, vaults.value);
@@ -205,12 +234,19 @@ async function handleExportAll() {
   }
 }
 
+function onWindowClick() {
+  menuOpen.value = false;
+}
+
 onMounted(async () => {
+  window.addEventListener('click', onWindowClick);
   homeTagFilters.value = loadSavedHomeTagFilters();
   await loadHome();
 });
 
-onUnmounted(() => {});
+onUnmounted(() => {
+  window.removeEventListener('click', onWindowClick);
+});
 
 watch(
   allTagGroups,
@@ -285,11 +321,20 @@ watch(
           :color="getColor(table.color, isLight)"
           :meta-schema="tableMetaSchema"
           @open="openTable"
+          @menu="handleTableMenu"
         />
       </template>
     </div>
 
     <button class="fab" @click="createModalOpen = true">+</button>
+
+    <ContextMenu
+      :open="menuOpen"
+      :position="menuPosition"
+      :items="menuItems"
+      @close="menuOpen = false"
+      @select="onMenuSelect"
+    />
 
     <TableEditorModal
       :open="createModalOpen"

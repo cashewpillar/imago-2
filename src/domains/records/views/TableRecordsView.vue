@@ -40,8 +40,9 @@ import {
   setAppMeta,
   updateEntry,
   updateVault,
+  deleteVault,
 } from '../../tables/services/tableVaultDb';
-import { pickTableBackupData } from '../../tables/services/fileTransfers';
+import { pickTableBackupData, exportTableData } from '../../tables/services/fileTransfers';
 
 const props = defineProps({
   tableId: {
@@ -217,6 +218,19 @@ async function saveSettings({ data, formFields }) {
   showToast('Saved!', 'success');
 }
 
+async function handleExportTable() {
+  if (!vault.value) return;
+  await exportTableData(vault.value);
+  showToast('Table exported!', 'success');
+}
+
+async function handleDeleteTable() {
+  if (!window.confirm('Delete this table and all its records?')) return;
+  await deleteVault(props.tableId);
+  showToast('Table deleted', 'error');
+  router.push({ name: 'home' });
+}
+
 async function openImportRecords() {
   try {
     const result = await pickTableBackupData();
@@ -364,10 +378,6 @@ function buildPreview(record) {
 
 function formatRecordDate(record) {
   return new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function onWindowClick() {
-  closeContextMenu();
 }
 
 watch(
@@ -529,6 +539,8 @@ onUnmounted(() => {});
       :schema="tableMetaSchema"
       @close="settingsOpen = false"
       @save="saveSettings"
+      @export="handleExportTable"
+      @delete="handleDeleteTable"
     />
   </div>
 </template>
