@@ -71,6 +71,7 @@ const form = reactive({});
 const localFormFields = ref([]);
 const localEditableFields = ref([]);
 const activePane = ref('form');
+const showAdvanced = ref(false);
 const hasSecondaryPane = computed(() => props.formFieldSchemaEditable || props.fieldEditorEnabled);
 
 const accent = computed(() => getColor(form.color || props.accentColor || 'Lime', props.isLight));
@@ -170,6 +171,33 @@ function addFormField() {
 
 function removeFormField(index) {
   localFormFields.value.splice(index, 1);
+}
+
+function moveField(list, from, to) {
+  if (to < 0 || to >= list.length) return;
+  const item = list[from];
+  list.splice(from, 1);
+  list.splice(to, 0, item);
+}
+
+const draggingIndex = ref(null);
+const draggingList = ref(null);
+
+function onDragStart(index, listName) {
+  draggingIndex.value = index;
+  draggingList.value = listName;
+}
+
+function onDragOver(index, listName) {
+  if (draggingList.value !== listName || draggingIndex.value === index) return;
+  const list = listName === 'form' ? localFormFields.value : localEditableFields.value;
+  moveField(list, draggingIndex.value, index);
+  draggingIndex.value = index;
+}
+
+function onDragEnd() {
+  draggingIndex.value = null;
+  draggingList.value = null;
 }
 
 function toggleMultiSelectValue(fieldKey, option) {
@@ -351,6 +379,13 @@ function submit() {
       </div>
 
       <div v-else class="record-fields-pane record-fields-pane-standalone">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);user-select:none;">
+            <input v-model="showAdvanced" type="checkbox" />
+            Show Advanced Settings
+          </label>
+        </div>
+
         <div v-if="formFieldSchemaEditable" class="record-fields-section">
           <div class="record-fields-section-title">Table Fields</div>
           <div class="record-fields-list">
@@ -358,10 +393,18 @@ function submit() {
               v-for="(field, index) in localFormFields"
               :key="field.key"
               class="field-row"
-              :class="{ wrap: supportsOptions(field) || supportsMaxlength(field) }"
+              :class="{ 
+                dragging: draggingIndex === index && draggingList === 'form',
+                wrap: supportsOptions(field) || (showAdvanced && supportsMaxlength(field))
+              }"
+              draggable="true"
+              @dragstart="onDragStart(index, 'form')"
+              @dragover.prevent="onDragOver(index, 'form')"
+              @dragend="onDragEnd"
             >
-              <span v-if="index === 0" class="field-badge">Title</span>
-              <span v-else class="field-badge field-badge-neutral">Field</span>
+              <div v-if="index === 0" class="field-badge">Title</div>
+              <div v-else class="field-drag-handle">⠿</div>
+
               <input v-model="field.label" type="text" placeholder="Field name" />
               <select v-model="field.type">
                 <option v-for="type in formFieldTypeOptions" :key="type" :value="type">{{ type }}</option>
@@ -378,7 +421,7 @@ function submit() {
                 <input v-model="field.optionsText" type="text" placeholder="Options, separated by commas" />
               </div>
               <div
-                v-if="field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
+                v-if="showAdvanced && field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
                 class="field-properties"
               >
                 <label v-if="supportsMaxlength(field)" class="field-prop field-prop-small">
@@ -416,10 +459,19 @@ function submit() {
               v-for="(field, index) in localEditableFields"
               :key="field.key"
               class="field-row"
-              :class="{ primary: index === 0, wrap: supportsOptions(field) || supportsMaxlength(field) }"
+              :class="{ 
+                primary: index === 0, 
+                dragging: draggingIndex === index && draggingList === 'editable',
+                wrap: supportsOptions(field) || (showAdvanced && supportsMaxlength(field))
+              }"
+              draggable="true"
+              @dragstart="onDragStart(index, 'editable')"
+              @dragover.prevent="onDragOver(index, 'editable')"
+              @dragend="onDragEnd"
             >
-              <span v-if="index === 0" class="field-badge">Title</span>
-              <span v-else class="field-badge field-badge-neutral">Field</span>
+              <div v-if="index === 0" class="field-badge">Title</div>
+              <div v-else class="field-drag-handle">⠿</div>
+
               <input v-model="field.label" type="text" placeholder="Field name" />
               <select v-model="field.type" :disabled="index === 0">
                 <option v-for="type in fieldTypeOptions" :key="type" :value="type">{{ type }}</option>
@@ -430,7 +482,7 @@ function submit() {
                 <input v-model="field.optionsText" type="text" placeholder="Options, separated by commas" />
               </div>
               <div
-                v-if="field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
+                v-if="showAdvanced && field.type !== 'color' && field.type !== 'boolean' && field.type !== 'progress'"
                 class="field-properties"
               >
                 <label v-if="supportsMaxlength(field)" class="field-prop field-prop-small">
