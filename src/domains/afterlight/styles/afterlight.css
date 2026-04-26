@@ -1,0 +1,456 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap');
+
+.al-screen {
+  min-height: 100vh;
+  background: #0e0e0e;
+  color: #e8e4dc;
+  font-family: 'DM Mono', monospace;
+}
+
+.al-shell {
+  width: min(100%, 568px);
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
+.al-header {
+  padding: 40px 0 24px;
+}
+
+.al-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: #7a7570;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.al-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  font-style: italic;
+  line-height: 1.1;
+}
+
+.al-meta {
+  font-size: 11px;
+  color: #c8a96e;
+  margin-top: 8px;
+  letter-spacing: 0.05em;
+  min-height: 16px;
+}
+
+.al-nav {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.al-nav-link {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7a7570;
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.al-nav-link.router-link-active {
+  color: #c8a96e;
+  border-bottom-color: #c8a96e;
+}
+
+.al-main {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.al-divider {
+  width: 100%;
+  height: 1px;
+  background: #2a2a2a;
+}
+
+.al-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.al-section-label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: #7a7570;
+  text-transform: uppercase;
+}
+
+.al-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.al-pill,
+.al-filter-pill,
+.al-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #2a2a2a;
+  background: #1e1e1e;
+  color: #7a7570;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.al-pill {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.al-pill.al-pill-lg {
+  padding: 9px 16px;
+  font-size: 13px;
+}
+
+.al-pill.active,
+.al-filter-pill.active,
+.al-chip.active {
+  background: #c8a96e;
+  border-color: #c8a96e;
+  color: #0e0e0e;
+}
+
+.al-field,
+.al-notes,
+.al-stats-card,
+.al-entry,
+.al-insight {
+  background: #161616;
+  border: 1px solid #2a2a2a;
+}
+
+.al-field,
+.al-notes {
+  border-radius: 2px;
+  color: #e8e4dc;
+  padding: 14px;
+  outline: none;
+}
+
+.al-field {
+  width: 100%;
+}
+
+.al-notes {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.al-field:focus,
+.al-notes:focus {
+  border-color: #c8a96e;
+}
+
+.al-minutes-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.al-minutes-input {
+  flex: 1 1 120px;
+  min-width: 120px;
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+
+.al-btn {
+  width: 100%;
+  padding: 16px;
+  background: #c8a96e;
+  color: #0e0e0e;
+  border: none;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.al-btn:hover {
+  opacity: 0.85;
+}
+
+.al-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.al-status {
+  font-size: 11px;
+  text-align: center;
+  padding: 10px;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+}
+
+.al-status.ok {
+  background: #1a2e1a;
+  color: #6fcf6f;
+  border-color: #2a4a2a;
+}
+
+.al-status.err {
+  background: #2e1a1a;
+  color: #cf6f6f;
+  border-color: #4a2a2a;
+}
+
+.al-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.al-stats-card {
+  border-radius: 2px;
+  padding: 14px;
+}
+
+.al-stat-value {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.al-stat-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #7a7570;
+}
+
+.al-stat-sub {
+  font-size: 10px;
+  color: #7a7570;
+  margin-top: 4px;
+}
+
+.al-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.al-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.al-bar-name {
+  font-size: 11px;
+  min-width: 80px;
+}
+
+.al-bar-track {
+  flex: 1;
+  height: 5px;
+  background: #2a2a2a;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.al-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.al-bar-count {
+  font-size: 11px;
+  color: #7a7570;
+  min-width: 36px;
+  text-align: right;
+}
+
+.al-gold {
+  background: #c8a96e;
+}
+
+.al-green {
+  background: #6fcf97;
+}
+
+.al-purple {
+  background: #9b8bde;
+}
+
+.al-red {
+  background: #e05c3a;
+}
+
+.al-filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.al-filter-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.al-agency-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #2a2a2a;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.al-agency-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #7a7570;
+}
+
+.al-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+
+.al-insight {
+  border-left: 2px solid #c8a96e;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #c5beb2;
+}
+
+.al-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.al-entry {
+  border-radius: 2px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.al-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.al-entry-time {
+  font-size: 10px;
+  color: #7a7570;
+}
+
+.al-entry-day {
+  font-size: 10px;
+  color: #c8a96e;
+}
+
+.al-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.al-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.al-notes-copy {
+  font-size: 11px;
+  color: #a89f92;
+  line-height: 1.5;
+  border-top: 1px solid #2a2a2a;
+  padding-top: 8px;
+  font-style: italic;
+}
+
+.al-empty {
+  padding: 24px 0;
+  color: #7a7570;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.al-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.al-grid-line,
+.al-axis-line {
+  stroke: #2a2a2a;
+  stroke-width: 1;
+}
+
+.al-path {
+  fill: none;
+  stroke: #c8a96e;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.al-dot {
+  fill: #c8a96e;
+}
+
+.al-svg-label {
+  fill: #7a7570;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+}
+
+.al-chart-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #7a7570;
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .al-shell {
+    padding-inline: 20px;
+  }
+
+  .al-two-col,
+  .al-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}

@@ -93,6 +93,10 @@ function openTable(table) {
   router.push({ name: 'table-records', params: { tableId: table.id } });
 }
 
+function openAfterlight() {
+  router.push({ name: 'afterlight-log' });
+}
+
 function openContextMenu(event, table) {
   contextMenu.value = {
     open: true,
@@ -264,6 +268,9 @@ watch(
       @update:search-value="homeSearch = $event"
     >
       <template #actions>
+        <button class="btn btn-ghost btn-icon" title="Open Afterlight" @click="openAfterlight">
+          ↳
+        </button>
         <button class="btn btn-ghost btn-icon" title="Search tables" @click="topSearchOpen = !topSearchOpen">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         </button>
