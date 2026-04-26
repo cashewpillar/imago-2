@@ -360,15 +360,14 @@ function submit() {
       </div>
 
       <div v-else class="record-fields-pane record-fields-pane-standalone">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);user-select:none;">
-            <input v-model="showAdvanced" type="checkbox" />
-            Show Advanced Settings
-          </label>
-        </div>
-
         <div v-if="formFieldSchemaEditable" class="record-fields-section">
-          <div class="record-fields-section-title">Table Fields</div>
+          <div class="record-fields-section-title">
+            Table Fields
+            <label v-if="!fieldEditorEnabled" class="advanced-toggle">
+              <input v-model="showAdvanced" type="checkbox" />
+              Advanced
+            </label>
+          </div>
           <div class="record-fields-list">
             <div
               v-for="(field, index) in localFormFields"
@@ -434,7 +433,13 @@ function submit() {
         />
 
         <div v-if="fieldEditorEnabled" class="record-fields-section">
-          <div class="record-fields-section-title">Record Fields</div>
+          <div class="record-fields-section-title">
+            Record Fields
+            <label class="advanced-toggle">
+              <input v-model="showAdvanced" type="checkbox" />
+              Advanced
+            </label>
+          </div>
           <div class="record-fields-list">
             <div
               v-for="(field, index) in localEditableFields"
