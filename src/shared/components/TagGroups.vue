@@ -97,7 +97,7 @@ onUnmounted(() => {
             :key="`${group.key}:${tag.value}`"
             class="tag-chip"
             :class="{ active: isActive(group.key, tag) }"
-            :style="isActive(group.key, tag) ? { background: color.val, borderColor: color.val } : undefined"
+            :style="isActive(group.key, tag) ? { background: color.dim, color: color.val, borderColor: 'transparent' } : undefined"
             @click="handleToggle(group, tag)"
           >
             {{ tag.label }}
@@ -112,7 +112,7 @@ onUnmounted(() => {
         <div 
           class="tag-chip" 
           :class="{ active: (activeFilters[group.key] || []).length > 0 }"
-          :style="(activeFilters[group.key] || []).length > 0 ? { background: color.val, borderColor: color.val } : undefined"
+          :style="(activeFilters[group.key] || []).length > 0 ? { background: color.dim, color: color.val, borderColor: 'transparent' } : undefined"
           @click="toggleGroup($event, group.key)"
         >
           {{ getGroupLabel(group) }}
@@ -129,7 +129,7 @@ onUnmounted(() => {
               :class="{ active: isActive(group.key, tag) }"
               @click="handleToggle(group, tag)"
             >
-              <div class="tag-popover-check" :style="isActive(group.key, tag) ? { background: color.val } : undefined">
+              <div class="tag-popover-check" :style="isActive(group.key, tag) ? { background: color.dim, color: color.val, borderColor: color.val } : undefined">
                 <span v-if="isActive(group.key, tag)">✓</span>
               </div>
               {{ tag.label }}
