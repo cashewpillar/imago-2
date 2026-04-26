@@ -360,7 +360,8 @@ function submit() {
               class="field-row"
               :class="{ wrap: supportsOptions(field) || supportsMaxlength(field) }"
             >
-              <span class="field-badge field-badge-neutral">{{ field.key }}</span>
+              <span v-if="index === 0" class="field-badge">Title</span>
+              <span v-else class="field-badge field-badge-neutral">Field</span>
               <input v-model="field.label" type="text" placeholder="Field name" />
               <select v-model="field.type">
                 <option v-for="type in formFieldTypeOptions" :key="type" :value="type">{{ type }}</option>
@@ -418,7 +419,7 @@ function submit() {
               :class="{ primary: index === 0, wrap: supportsOptions(field) || supportsMaxlength(field) }"
             >
               <span v-if="index === 0" class="field-badge">Title</span>
-              <span v-else style="color:var(--muted2);cursor:grab;font-size:14px;">⠿</span>
+              <span v-else class="field-badge field-badge-neutral">Field</span>
               <input v-model="field.label" type="text" placeholder="Field name" />
               <select v-model="field.type" :disabled="index === 0">
                 <option v-for="type in fieldTypeOptions" :key="type" :value="type">{{ type }}</option>
