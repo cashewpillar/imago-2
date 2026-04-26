@@ -32,7 +32,9 @@
   --primary: #61a300;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+input, textarea, select, [contenteditable="true"] { user-select: text; }
+.modal, .modal * { user-select: text; }
 html, body, #app { height: 100%; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-b); font-size: 14px; line-height: 1.5; min-height: 100vh; }
 body { overscroll-behavior-y: contain; }
