@@ -5,6 +5,7 @@ import { getColor } from '../utils/color';
 import { normalizeField, parseSelectOptions, sanitizeTableMetaSchema } from '../utils/tableVault';
 import BaseModal from './BaseModal.vue';
 import ColorPicker from './ColorPicker.vue';
+import MarkdownEditor from './MarkdownEditor.vue';
 
 const props = defineProps({
   open: {
@@ -223,25 +224,6 @@ function supportsMaxlength(field) {
   return ['text', 'url', 'textarea'].includes(field.type);
 }
 
-function adjustTextareaHeight(e) {
-  const el = e?.target || e;
-  if (!el || !el.style) return;
-  el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
-}
-
-watch(
-  () => [props.open, activePane.value],
-  async ([isOpen]) => {
-    if (isOpen) {
-      await nextTick();
-      document.querySelectorAll('.ftextarea').forEach((el) => {
-        adjustTextareaHeight(el);
-      });
-    }
-  },
-);
-
 function submit() {
   const data = {};
   normalizedFormFields.value.forEach((field) => {
@@ -296,11 +278,10 @@ function submit() {
               <span class="type-badge">{{ field.type }}</span>
             </div>
 
-            <textarea
+            <MarkdownEditor
               v-if="field.type === 'textarea'"
               v-model="form[field.key]"
-              class="ftextarea"
-              @input="adjustTextareaHeight"
+              style="margin-top:2px;"
             />
 
             <div v-else-if="field.type === 'boolean'" style="display:flex;gap:16px;margin-top:2px;">
