@@ -12,7 +12,7 @@ const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save', 'export', 'delete']);
 
 const formFields = computed(() => props.schema);
 
@@ -34,5 +34,16 @@ const initialData = computed(() => (props.table ? getTableFormData(props.table, 
     :save-label="mode === 'edit' ? 'Save' : 'Create'"
     @close="$emit('close')"
     @save="$emit('save', $event)"
-  />
+  >
+    <template #footer-left>
+      <template v-if="mode === 'edit'">
+        <button class="btn btn-ghost" title="Export Table" @click="$emit('export')">
+          Export
+        </button>
+        <button class="btn btn-danger" title="Delete Table" @click="$emit('delete')">
+          Delete
+        </button>
+      </template>
+    </template>
+  </SchemaEditorModal>
 </template>

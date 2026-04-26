@@ -17,7 +17,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['open', 'menu']);
+defineEmits(['open']);
 
 const metaGroups = computed(() => getTableMetaGroups(props.metaSchema, props.table));
 </script>
@@ -46,7 +46,6 @@ const metaGroups = computed(() => getTableMetaGroups(props.metaSchema, props.tab
       <span class="tc-count" :style="{ background: color.dim, color: color.val }">
         {{ table._count }} record{{ table._count !== 1 ? 's' : '' }}
       </span>
-      <button class="tc-menu" @click.stop="$emit('menu', $event, table)">⋮</button>
     </div>
   </div>
 </template>

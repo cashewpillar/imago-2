@@ -498,6 +498,9 @@ function submit() {
     </div>
 
     <template #footer>
+      <div style="margin-right:auto;display:flex;gap:8px;">
+        <slot name="footer-left" />
+      </div>
       <button class="btn btn-ghost" @click="$emit('close')">Cancel</button>
       <button class="btn btn-primary" @click="submit">{{ saveLabel }}</button>
     </template>

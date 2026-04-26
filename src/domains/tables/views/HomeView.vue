@@ -32,7 +32,6 @@ const homeTagFilters = ref({});
 const createModalOpen = ref(false);
 const settingsOpen = ref(false);
 const selectedTable = ref(null);
-const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
 const tableMetaSchema = ref(getDefaultTableMetaFields());
 
 const allTagGroups = computed(() => {
@@ -108,47 +107,16 @@ function openAfterlight() {
   router.push({ name: 'afterlight-log' });
 }
 
-function openContextMenu(event, table) {
-  contextMenu.value = {
-    open: true,
-    position: { x: event.clientX, y: event.clientY },
-    items: [
-      {
-        label: '⚙️  Settings',
-        action: () => {
-          selectedTable.value = table;
-          settingsOpen.value = true;
-        },
-      },
-      { sep: true },
-      {
-        label: '⬇️  Export',
-        action: async () => {
-          await exportTableData(table);
-          showToast('Table exported!', 'success');
-        },
-      },
-      {
-        label: '🗑  Delete',
-        danger: true,
-        action: async () => {
-          if (!window.confirm('Delete this table and all its records?')) return;
-          await deleteVault(table.id);
-          await loadHome();
-          showToast('Deleted', 'error');
-        },
-      },
-    ],
-  };
+async function handleExportTable(table) {
+  await exportTableData(table);
+  showToast('Table exported!', 'success');
 }
 
-function closeContextMenu() {
-  contextMenu.value.open = false;
-}
-
-async function handleContextSelect(item) {
-  closeContextMenu();
-  await item.action?.();
+async function handleDeleteTable(table) {
+  if (!window.confirm('Delete this table and all its records?')) return;
+  await deleteVault(table.id);
+  await loadHome();
+  showToast('Deleted', 'error');
 }
 
 async function handleCreateTable({ data, formFields }) {
@@ -237,19 +205,12 @@ async function handleExportAll() {
   }
 }
 
-function onWindowClick() {
-  closeContextMenu();
-}
-
 onMounted(async () => {
   homeTagFilters.value = loadSavedHomeTagFilters();
   await loadHome();
-  window.addEventListener('click', onWindowClick);
 });
 
-onUnmounted(() => {
-  window.removeEventListener('click', onWindowClick);
-});
+onUnmounted(() => {});
 
 watch(
   allTagGroups,
@@ -324,7 +285,6 @@ watch(
           :color="getColor(table.color, isLight)"
           :meta-schema="tableMetaSchema"
           @open="openTable"
-          @menu="openContextMenu"
         />
       </template>
     </div>
@@ -352,14 +312,8 @@ watch(
         selectedTable = null
       "
       @save="handleSaveSettings"
-    />
-
-    <ContextMenu
-      :open="contextMenu.open"
-      :position="contextMenu.position"
-      :items="contextMenu.items"
-      @select="handleContextSelect"
-      @close="closeContextMenu"
+      @export="handleExportTable(selectedTable)"
+      @delete="handleDeleteTable(selectedTable).then(() => { settingsOpen = false; selectedTable = null; })"
     />
   </div>
 </template>

@@ -64,7 +64,6 @@ const collapsedGroups = ref({});
 const recordModal = ref({ open: false, mode: 'add', entryId: null, data: {} });
 const importModal = ref({ open: false, backup: null });
 const settingsOpen = ref(false);
-const contextMenu = ref({ open: false, position: { x: 0, y: 0 }, items: [] });
 const showGroupingSelect = features.recordsGrouping;
 const tableMetaSchema = ref(getDefaultTableMetaFields());
 
@@ -310,74 +309,43 @@ function toggleGroup(name) {
   };
 }
 
-function openEntryContext(event, record) {
-  contextMenu.value = {
-    open: true,
-    position: { x: event.clientX, y: event.clientY },
-    items: [
-      {
-        label: '✏️  Edit',
-        action: async () => {
-          const fresh = await getEntry(record.id);
-          if (fresh) openRecordModal('edit', fresh);
-        },
-      },
-      {
-        label: '📋  Copy',
-        action: async () => {
-          const yamlItems = fields.value
-            .map((field) => {
-              const val = record.data?.[field.key];
-              if (val === undefined || val === null || val === '') return null;
+async function copyRecordAsYaml(record) {
+  const yamlItems = fields.value
+    .map((field) => {
+      const val = record.data?.[field.key];
+      if (val === undefined || val === null || val === '') return null;
 
-              let displayVal;
-              if (field.type === 'boolean') {
-                displayVal = val ? 'true' : 'false';
-              } else if (Array.isArray(val)) {
-                if (val.length === 0) return null;
-                displayVal = '\n' + val.map((v) => `  - ${v}`).join('\n');
-              } else if (typeof val === 'string' && val.includes('\n')) {
-                displayVal = '|\n' + val.split('\n').map((line) => `  ${line}`).join('\n');
-              } else {
-                displayVal = val;
-              }
+      let displayVal;
+      if (field.type === 'boolean') {
+        displayVal = val ? 'true' : 'false';
+      } else if (Array.isArray(val)) {
+        if (val.length === 0) return null;
+        displayVal = '\n' + val.map((v) => `  - ${v}`).join('\n');
+      } else if (typeof val === 'string' && val.includes('\n')) {
+        displayVal = '|\n' + val.split('\n').map((line) => `  ${line}`).join('\n');
+      } else {
+        displayVal = val;
+      }
 
-              return `${field.label}: ${displayVal}`;
-            })
-            .filter(Boolean);
+      return `${field.label}: ${displayVal}`;
+    })
+    .filter(Boolean);
 
-          const text = yamlItems.join('\n');
+  const text = yamlItems.join('\n');
 
-          try {
-            await navigator.clipboard.writeText(text);
-            showToast('Copied as YAML!', 'success');
-          } catch (err) {
-            showToast('Failed to copy', 'error');
-          }
-        },
-      },
-      { sep: true },
-      {
-        label: '🗑  Delete',
-        danger: true,
-        action: async () => {
-          if (!window.confirm('Delete this record?')) return;
-          await deleteEntry(record.id);
-          entries.value = entries.value.filter((entry) => entry.id !== record.id);
-          showToast('Deleted', 'error');
-        },
-      },
-    ],
-  };
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Copied as YAML!', 'success');
+  } catch (err) {
+    showToast('Failed to copy', 'error');
+  }
 }
 
-function closeContextMenu() {
-  contextMenu.value.open = false;
-}
-
-async function handleContextSelect(item) {
-  closeContextMenu();
-  await item.action?.();
+async function handleDeleteRecord(record) {
+  if (!window.confirm('Delete this record?')) return;
+  await deleteEntry(record.id);
+  entries.value = entries.value.filter((entry) => entry.id !== record.id);
+  showToast('Deleted', 'error');
 }
 
 function buildPreview(record) {
@@ -439,12 +407,9 @@ onMounted(() => {
   if (!showGroupingSelect) {
     groupField.value = '';
   }
-  window.addEventListener('click', onWindowClick);
 });
 
-onUnmounted(() => {
-  window.removeEventListener('click', onWindowClick);
-});
+onUnmounted(() => {});
 </script>
 
 <template>
@@ -513,7 +478,6 @@ onUnmounted(() => {
                 :color="vaultColor"
                 :date-label="formatRecordDate(record)"
                 @open="openRecordModal('edit', record)"
-                @menu="openEntryContext"
               />
             </div>
           </div>
@@ -531,7 +495,6 @@ onUnmounted(() => {
           :color="vaultColor"
           :date-label="formatRecordDate(record)"
           @open="openRecordModal('edit', record)"
-          @menu="openEntryContext"
         />
       </template>
     </div>
@@ -546,6 +509,8 @@ onUnmounted(() => {
       :initial-data="recordModal.data"
       @close="recordModal.open = false"
       @save="saveRecord"
+      @copy="copyRecordAsYaml({ id: recordModal.entryId, data: recordModal.data })"
+      @delete="handleDeleteRecord({ id: recordModal.entryId }).then(() => recordModal.open = false)"
     />
 
     <ImportRecordsModal
@@ -564,14 +529,6 @@ onUnmounted(() => {
       :schema="tableMetaSchema"
       @close="settingsOpen = false"
       @save="saveSettings"
-    />
-
-    <ContextMenu
-      :open="contextMenu.open"
-      :position="contextMenu.position"
-      :items="contextMenu.items"
-      @select="handleContextSelect"
-      @close="closeContextMenu"
     />
   </div>
 </template>

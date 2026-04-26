@@ -26,7 +26,7 @@ defineProps({
   },
 });
 
-defineEmits(['open', 'menu']);
+defineEmits(['open']);
 </script>
 
 <template>
@@ -34,7 +34,6 @@ defineEmits(['open', 'menu']);
     <div class="rc-stripe" :style="{ background: color.val }" />
     <div class="rc-header">
       <div class="rc-title">{{ title }}</div>
-      <button class="rc-menu" @click.stop="$emit('menu', $event, record)">⋮</button>
     </div>
     <div v-if="previewFields.length" class="rc-fields">
       <div v-for="field in previewFields" :key="field.label + field.value" class="rc-frow">

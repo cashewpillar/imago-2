@@ -11,7 +11,7 @@ const props = defineProps({
   initialData: { type: Object, default: () => ({}) },
 });
 
-defineEmits(['close', 'save']);
+defineEmits(['close', 'save', 'copy', 'delete']);
 
 const formFields = computed(() => props.fields.map((field, index) => normalizeField(field, index)));
 </script>
@@ -30,5 +30,16 @@ const formFields = computed(() => props.fields.map((field, index) => normalizeFi
     :save-label="mode === 'edit' ? 'Save' : 'Add'"
     @close="$emit('close')"
     @save="$emit('save', $event)"
-  />
+  >
+    <template #footer-left>
+      <template v-if="mode === 'edit'">
+        <button class="btn btn-ghost" title="Copy as YAML" @click="$emit('copy')">
+          Copy
+        </button>
+        <button class="btn btn-danger" title="Delete record" @click="$emit('delete')">
+          Delete
+        </button>
+      </template>
+    </template>
+  </SchemaEditorModal>
 </template>
