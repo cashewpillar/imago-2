@@ -73,6 +73,12 @@ const fields = computed(() => vault.value?.fields || []);
 
 const tagGroups = computed(() => getRecordFilterGroups(fields.value, entries.value));
 
+const topbarMenuItems = [
+  { label: 'Table Settings', action: () => { settingsOpen.value = true; } },
+  { label: 'Import Records', action: openImportRecords },
+  { label: 'Toggle Theme', action: toggleTheme },
+];
+
 function getRecordTagFiltersKey(tableId) {
   return `${RECORD_TAG_FILTERS_KEY_PREFIX}${tableId}`;
 }
@@ -429,6 +435,7 @@ onUnmounted(() => {});
       :title="`${vault?.icon || ''} ${vault?.name || '—'}`"
       :search-open="topSearchOpen"
       :search-value="recordSearch"
+      :menu-items="topbarMenuItems"
       search-placeholder="Search records…"
       @back="goHome"
       @toggle-search="topSearchOpen = !topSearchOpen"
@@ -437,15 +444,6 @@ onUnmounted(() => {});
       <template #actions>
         <button class="btn btn-ghost btn-icon" title="Search records" @click="topSearchOpen = !topSearchOpen">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon" title="Table settings" @click="settingsOpen = true">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 1v1.2M6.5 10.8V12M12 6.5h-1.2M2.2 6.5H1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon" title="Import records into this table" @click="openImportRecords">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v6.2M4 5.4l2.5 2.5 2.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10.5h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M1.5 11.5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".45"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon" title="Toggle theme" @click="toggleTheme">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="2.4" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 1v1.4M6.5 10.6V12M12 6.5h-1.4M2.4 6.5H1M10.4 2.6l-1 1M3.6 9.4l-1 1M10.4 10.4l-1-1M3.6 3.6l-1-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         </button>
       </template>
     </AppTopbar>

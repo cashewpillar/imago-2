@@ -44,6 +44,14 @@ const menuItems = [
   { label: 'Delete', action: 'delete', danger: true },
 ];
 
+const topbarMenuItems = [
+  { label: 'Open Afterlight', action: openAfterlight },
+  { label: 'Import Table', action: handleImportTable },
+  { label: 'Backup All Data', action: handleExportAll },
+  { label: 'Restore All Data', action: handleImportAll },
+  { label: 'Toggle Theme', action: toggleTheme },
+];
+
 function handleTableMenu({ table, x, y }) {
   selectedTable.value = table;
   menuPosition.value = { x, y };
@@ -271,28 +279,14 @@ watch(
       show-logo
       :search-open="topSearchOpen"
       :search-value="homeSearch"
+      :menu-items="topbarMenuItems"
       search-placeholder="Search tables…"
       @toggle-search="topSearchOpen = !topSearchOpen"
       @update:search-value="homeSearch = $event"
     >
       <template #actions>
-        <button class="btn btn-ghost btn-icon" title="Open Afterlight" @click="openAfterlight">
-          ↳
-        </button>
         <button class="btn btn-ghost btn-icon" title="Search tables" @click="topSearchOpen = !topSearchOpen">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon" title="Import table" @click="handleImportTable">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v6.2M4 5.4l2.5 2.5 2.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10.5h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon" title="Backup all data" @click="handleExportAll">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2.5 4.5l4 4 4-4M6.5 8.5V1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 11.5h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon" title="Restore all data" @click="handleImportAll">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 8.5V1.5M2.5 5.5l4-4 4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 11.5h11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-        </button>
-        <button class="btn btn-ghost btn-icon" title="Toggle theme" @click="toggleTheme">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="2.4" stroke="currentColor" stroke-width="1.2"/><path d="M6.5 1v1.4M6.5 10.6V12M12 6.5h-1.4M2.4 6.5H1M10.4 2.6l-1 1M3.6 9.4l-1 1M10.4 10.4l-1-1M3.6 3.6l-1-1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         </button>
       </template>
     </AppTopbar>

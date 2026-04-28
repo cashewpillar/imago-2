@@ -1,5 +1,7 @@
 <script setup>
+import { ref } from 'vue';
 import SearchField from './SearchField.vue';
+import ContextMenu from './ContextMenu.vue';
 
 defineProps({
   title: {
@@ -26,9 +28,28 @@ defineProps({
     type: String,
     default: 'Search…',
   },
+  menuItems: {
+    type: Array,
+    default: () => [],
+  },
 });
 
-defineEmits(['back', 'toggle-search', 'update:searchValue']);
+const emit = defineEmits(['back', 'toggle-search', 'update:searchValue', 'menu-select']);
+
+const menuOpen = ref(false);
+const menuPos = ref({ x: 0, y: 0 });
+
+const toggleMenu = (e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  menuPos.value = { x: rect.right, y: rect.bottom + 5 };
+  menuOpen.value = !menuOpen.value;
+};
+
+const handleSelect = (item) => {
+  menuOpen.value = false;
+  if (item.action) item.action();
+  emit('menu-select', item);
+};
 </script>
 
 <template>
@@ -52,6 +73,36 @@ defineEmits(['back', 'toggle-search', 'update:searchValue']);
 
     <div class="topbar-actions">
       <slot name="actions" :search-open="searchOpen" :toggle-search="() => $emit('toggle-search')" />
+      
+      <button 
+        v-if="menuItems.length" 
+        class="btn btn-ghost btn-icon" 
+        title="Settings"
+        @click="toggleMenu"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7z"/>
+            <path d="
+              M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3
+              1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1
+              a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2
+              a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0
+              a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1
+              a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0c.2.6.8 1 1.5 1H21a2 2 0 1 1 0 4h-.2
+              a1.7 1.7 0 0 0-1.5 1z
+            "/>
+          </g>
+        </svg>
+      </button>
+
+      <ContextMenu
+        :open="menuOpen"
+        :position="menuPos"
+        :items="menuItems"
+        @close="menuOpen = false"
+        @select="handleSelect"
+      />
     </div>
   </div>
 </template>
