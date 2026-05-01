@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import HomeView from '../domains/tables/views/HomeView.vue';
 import TableRecordsView from '../domains/records/views/TableRecordsView.vue';
 import AfterlightCreateView from '../domains/afterlight/views/AfterlightCreateView.vue';
@@ -6,7 +6,7 @@ import AfterlightOverviewView from '../domains/afterlight/views/AfterlightOvervi
 import AfterlightChartsView from '../domains/afterlight/views/AfterlightChartsView.vue';
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
