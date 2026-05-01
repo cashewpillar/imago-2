@@ -4,12 +4,22 @@ import { useRouter } from 'vue-router';
 import AppTopbar from '../../../shared/components/AppTopbar.vue';
 import ContextMenu from '../../../shared/components/ContextMenu.vue';
 import EmptyState from '../../../shared/components/EmptyState.vue';
+import FilterPreferencesModal from '../../../shared/components/FilterPreferencesModal.vue';
 import TagGroups from '../../../shared/components/TagGroups.vue';
 import TableCard from '../components/TableCard.vue';
 import TableEditorModal from '../components/TableEditorModal.vue';
 import { HOME_TAG_FILTERS_KEY } from '../../../shared/constants/tableVault';
 import { getColor } from '../../../shared/utils/color';
-import { getAppMeta, listVaults, createVault, deleteVault, setAppMeta, updateVault } from '../services/tableVaultDb';
+import {
+  getAppMeta,
+  getHomeFilterPreferences,
+  listVaults,
+  createVault,
+  deleteVault,
+  setAppMeta,
+  setHomeFilterPreferences,
+  updateVault,
+} from '../services/tableVaultDb';
 import { exportAllData, exportTableData, importAllData, importTableData } from '../services/fileTransfers';
 import {
   buildDataFromActiveFilters,
@@ -35,6 +45,9 @@ const selectedTable = ref(null);
 const menuOpen = ref(false);
 const menuPosition = ref({ x: 0, y: 0 });
 const tableMetaSchema = ref(getDefaultTableMetaFields());
+const fabOpen = ref(false);
+const filterPreferencesOpen = ref(false);
+const homeFilterPreferences = ref([]);
 
 const menuItems = [
   { label: 'Open', action: 'open' },
@@ -76,6 +89,26 @@ const allTagGroups = computed(() => {
 });
 
 const createTableInitialData = computed(() => buildDataFromActiveFilters(homeTagFilters.value, tableMetaSchema.value));
+const hasHomePresets = computed(() => homeFilterPreferences.value.length > 0);
+
+function getFilterSignature(filters) {
+  return JSON.stringify(
+    Object.fromEntries(
+      Object.entries(filters || {})
+        .map(([key, values]) => [key, [...values].sort()])
+        .sort(([a], [b]) => a.localeCompare(b)),
+    ),
+  );
+}
+
+const activeHomePresetId = computed(() => {
+  const current = getFilterSignature(sanitizeGroupFilters(homeTagFilters.value, allTagGroups.value));
+  return homeFilterPreferences.value.find((item) => getFilterSignature(sanitizeGroupFilters(item.filters, allTagGroups.value)) === current)?.id || '';
+});
+
+const hasCustomHomeFilters = computed(() => {
+  return !!Object.keys(homeTagFilters.value).length && !activeHomePresetId.value;
+});
 
 function loadSavedHomeTagFilters() {
   try {
@@ -98,9 +131,14 @@ const filteredVaults = computed(() =>
 );
 
 async function loadHome() {
-  const [nextVaults, schemaMeta] = await Promise.all([listVaults(), getAppMeta('tableMetaSchema')]);
+  const [nextVaults, schemaMeta, nextPreferences] = await Promise.all([
+    listVaults(),
+    getAppMeta('tableMetaSchema'),
+    getHomeFilterPreferences(),
+  ]);
   vaults.value = nextVaults;
   tableMetaSchema.value = sanitizeTableMetaSchema(schemaMeta?.value || getDefaultTableMetaFields());
+  homeFilterPreferences.value = nextPreferences;
 }
 
 function toggleTag({ groupKey, tag, type, nextValue }) {
@@ -176,10 +214,12 @@ async function handleCreateTable({ data, formFields }) {
       { key: 'title', label: 'Title', type: 'text', options: [] },
       { key: 'notes', label: 'Notes', type: 'textarea', options: [] },
     ],
+    recordFilterPreferences: [],
     createdAt: Date.now(),
   });
 
   createModalOpen.value = false;
+  fabOpen.value = false;
   await loadHome();
   showToast('Table created!', 'success');
   router.push({ name: 'table-records', params: { tableId: id } });
@@ -244,6 +284,38 @@ async function handleExportAll() {
 
 function onWindowClick() {
   menuOpen.value = false;
+  fabOpen.value = false;
+}
+
+async function handleSaveHomeFilterPreference({ name, filters }) {
+  const nextPreferences = [
+    ...homeFilterPreferences.value,
+    { id: `home_${Date.now()}`, name, filters },
+  ];
+  homeFilterPreferences.value = nextPreferences;
+  await setHomeFilterPreferences(nextPreferences);
+  showToast('Preset saved!', 'success');
+}
+
+async function handleDeleteHomeFilterPreference(id) {
+  const nextPreferences = homeFilterPreferences.value.filter((item) => item.id !== id);
+  homeFilterPreferences.value = nextPreferences;
+  await setHomeFilterPreferences(nextPreferences);
+  showToast('Preset deleted', 'success');
+}
+
+function applyHomeFilters(filters) {
+  homeTagFilters.value = sanitizeGroupFilters(filters, allTagGroups.value);
+  filterPreferencesOpen.value = false;
+  fabOpen.value = false;
+}
+
+function clearHomeFilters() {
+  homeTagFilters.value = {};
+}
+
+function applyHomePreset(preference) {
+  homeTagFilters.value = sanitizeGroupFilters(preference.filters, allTagGroups.value);
 }
 
 onMounted(async () => {
@@ -292,7 +364,36 @@ watch(
     </AppTopbar>
 
     <div class="filter-bar">
+      <div v-if="hasHomePresets" class="preset-chip-row">
+        <button
+          class="tag-chip"
+          :class="{ active: !Object.keys(homeTagFilters).length }"
+          :style="!Object.keys(homeTagFilters).length ? { background: getColor('Lime', isLight).dim, color: getColor('Lime', isLight).val, borderColor: 'transparent' } : undefined"
+          @click="clearHomeFilters"
+        >
+          All
+        </button>
+        <button
+          v-for="preference in homeFilterPreferences"
+          :key="preference.id"
+          class="tag-chip"
+          :class="{ active: activeHomePresetId === preference.id }"
+          :style="activeHomePresetId === preference.id ? { background: getColor('Lime', isLight).dim, color: getColor('Lime', isLight).val, borderColor: 'transparent' } : undefined"
+          @click="applyHomePreset(preference)"
+        >
+          {{ preference.name }}
+        </button>
+        <button
+          v-if="hasCustomHomeFilters"
+          class="tag-chip active"
+          :style="{ background: getColor('Lime', isLight).dim, color: getColor('Lime', isLight).val, borderColor: 'transparent' }"
+          @click="filterPreferencesOpen = true"
+        >
+          Custom
+        </button>
+      </div>
       <TagGroups
+        v-else
         :groups="allTagGroups"
         :active-filters="homeTagFilters"
         :color="getColor('Lime', isLight)"
@@ -320,7 +421,26 @@ watch(
       </template>
     </div>
 
-    <button class="fab" @click="createModalOpen = true">+</button>
+    <div class="fab-stack" :class="{ open: fabOpen }">
+      <button 
+        class="fab-secondary" 
+        title="Filter presets" 
+        aria-label="Open filter preferences" 
+        @click.stop="filterPreferencesOpen = true; fabOpen = false"
+        :style="{ '--i': 0, '--total': 2 }"
+      >
+        F
+      </button>
+      <button 
+        class="fab-secondary" 
+        aria-label="Create table" 
+        @click.stop="createModalOpen = true; fabOpen = false"
+        :style="{ '--i': 1, '--total': 2 }"
+      >
+        +
+      </button>
+      <button class="fab" :class="{ open: fabOpen }" @click.stop="fabOpen = !fabOpen">+</button>
+    </div>
 
     <ContextMenu
       :open="menuOpen"
@@ -338,6 +458,19 @@ watch(
       :initial-data="createTableInitialData"
       @close="createModalOpen = false"
       @save="handleCreateTable"
+    />
+
+    <FilterPreferencesModal
+      :open="filterPreferencesOpen"
+      title="Home Filter Presets"
+      :groups="allTagGroups"
+      :active-filters="homeTagFilters"
+      :preferences="homeFilterPreferences"
+      :color="getColor('Lime', isLight)"
+      @close="filterPreferencesOpen = false"
+      @apply="applyHomeFilters"
+      @save-preference="handleSaveHomeFilterPreference"
+      @delete-preference="handleDeleteHomeFilterPreference"
     />
 
     <TableEditorModal

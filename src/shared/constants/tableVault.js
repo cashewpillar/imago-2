@@ -25,3 +25,4 @@ export const FIELD_TYPES = [
 export const THEME_KEY = 'tablevault-theme';
 export const HOME_TAG_FILTERS_KEY = 'tablevault-home-tag-filters';
 export const RECORD_TAG_FILTERS_KEY_PREFIX = 'tablevault-record-tag-filters:';
+export const HOME_FILTER_PREFERENCES_META_KEY = 'homeFilterPreferences';

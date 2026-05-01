@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import AppTopbar from '../../../shared/components/AppTopbar.vue';
 import ContextMenu from '../../../shared/components/ContextMenu.vue';
 import EmptyState from '../../../shared/components/EmptyState.vue';
+import FilterPreferencesModal from '../../../shared/components/FilterPreferencesModal.vue';
 import TagGroups from '../../../shared/components/TagGroups.vue';
 import RecordCard from '../components/RecordCard.vue';
 import RecordFormModal from '../components/RecordFormModal.vue';
@@ -34,9 +35,11 @@ import {
   deleteEntry,
   getAppMeta,
   getEntry,
+  getRecordFilterPreferences,
   getVault,
   importEntriesIntoVault,
   listEntries,
+  setRecordFilterPreferences,
   setAppMeta,
   updateEntry,
   updateVault,
@@ -67,11 +70,34 @@ const importModal = ref({ open: false, backup: null });
 const settingsOpen = ref(false);
 const showGroupingSelect = features.recordsGrouping;
 const tableMetaSchema = ref(getDefaultTableMetaFields());
+const fabOpen = ref(false);
+const filterPreferencesOpen = ref(false);
+const recordFilterPreferences = ref([]);
 
 const vaultColor = computed(() => getColor(vault.value?.color || 'Lime', isLight.value));
 const fields = computed(() => vault.value?.fields || []);
 
 const tagGroups = computed(() => getRecordFilterGroups(fields.value, entries.value));
+const hasRecordPresets = computed(() => recordFilterPreferences.value.length > 0);
+
+function getFilterSignature(filters) {
+  return JSON.stringify(
+    Object.fromEntries(
+      Object.entries(filters || {})
+        .map(([key, values]) => [key, [...values].sort()])
+        .sort(([a], [b]) => a.localeCompare(b)),
+    ),
+  );
+}
+
+const activeRecordPresetId = computed(() => {
+  const current = getFilterSignature(sanitizeGroupFilters(recordTagFilters.value, tagGroups.value));
+  return recordFilterPreferences.value.find((item) => getFilterSignature(sanitizeGroupFilters(item.filters, tagGroups.value)) === current)?.id || '';
+});
+
+const hasCustomRecordFilters = computed(() => {
+  return !!Object.keys(recordTagFilters.value).length && !activeRecordPresetId.value;
+});
 
 const topbarMenuItems = [
   { label: 'Table Settings', action: () => { settingsOpen.value = true; } },
@@ -126,9 +152,14 @@ const groupingOptions = computed(() => [
 ]);
 
 async function loadRecords() {
-  const [nextVault, schemaMeta] = await Promise.all([getVault(props.tableId), getAppMeta('tableMetaSchema')]);
+  const [nextVault, schemaMeta, nextPreferences] = await Promise.all([
+    getVault(props.tableId),
+    getAppMeta('tableMetaSchema'),
+    getRecordFilterPreferences(props.tableId),
+  ]);
   vault.value = nextVault;
   tableMetaSchema.value = sanitizeTableMetaSchema(schemaMeta?.value || getDefaultTableMetaFields());
+  recordFilterPreferences.value = nextPreferences;
   if (!vault.value) {
     router.replace({ name: 'home' });
     return;
@@ -137,6 +168,7 @@ async function loadRecords() {
 }
 
 function goHome() {
+  fabOpen.value = false;
   router.push({ name: 'home' });
 }
 
@@ -174,6 +206,7 @@ function toggleTag({ groupKey, tag, type, nextValue }) {
 }
 
 function openRecordModal(mode, entry = null) {
+  fabOpen.value = false;
   recordModal.value = {
     open: true,
     mode,
@@ -200,6 +233,37 @@ async function saveRecord({ data, fields: nextFields }) {
 
   recordModal.value.open = false;
   await loadRecords();
+}
+
+async function handleSaveRecordFilterPreference({ name, filters }) {
+  const nextPreferences = [
+    ...recordFilterPreferences.value,
+    { id: `table_${props.tableId}_${Date.now()}`, name, filters },
+  ];
+  recordFilterPreferences.value = nextPreferences;
+  await setRecordFilterPreferences(props.tableId, nextPreferences);
+  showToast('Preset saved!', 'success');
+}
+
+async function handleDeleteRecordFilterPreference(id) {
+  const nextPreferences = recordFilterPreferences.value.filter((item) => item.id !== id);
+  recordFilterPreferences.value = nextPreferences;
+  await setRecordFilterPreferences(props.tableId, nextPreferences);
+  showToast('Preset deleted', 'success');
+}
+
+function applyRecordFilters(filters) {
+  recordTagFilters.value = sanitizeGroupFilters(filters, tagGroups.value);
+  filterPreferencesOpen.value = false;
+  fabOpen.value = false;
+}
+
+function clearRecordFilters() {
+  recordTagFilters.value = {};
+}
+
+function applyRecordPreset(preference) {
+  recordTagFilters.value = sanitizeGroupFilters(preference.filters, tagGroups.value);
 }
 
 async function saveSettings({ data, formFields }) {
@@ -423,9 +487,17 @@ onMounted(() => {
   if (!showGroupingSelect) {
     groupField.value = '';
   }
+
+  window.addEventListener('click', closeFab);
 });
 
-onUnmounted(() => {});
+onUnmounted(() => {
+  window.removeEventListener('click', closeFab);
+});
+
+function closeFab() {
+  fabOpen.value = false;
+}
 </script>
 
 <template>
@@ -456,7 +528,35 @@ onUnmounted(() => {});
           </option>
         </select>
       </div>
-      <TagGroups :groups="tagGroups" :active-filters="recordTagFilters" :color="vaultColor" @toggle="toggleTag" />
+      <div v-if="hasRecordPresets" class="preset-chip-row">
+        <button
+          class="tag-chip"
+          :class="{ active: !Object.keys(recordTagFilters).length }"
+          :style="!Object.keys(recordTagFilters).length ? { background: vaultColor.dim, color: vaultColor.val, borderColor: 'transparent' } : undefined"
+          @click="clearRecordFilters"
+        >
+          All
+        </button>
+        <button
+          v-for="preference in recordFilterPreferences"
+          :key="preference.id"
+          class="tag-chip"
+          :class="{ active: activeRecordPresetId === preference.id }"
+          :style="activeRecordPresetId === preference.id ? { background: vaultColor.dim, color: vaultColor.val, borderColor: 'transparent' } : undefined"
+          @click="applyRecordPreset(preference)"
+        >
+          {{ preference.name }}
+        </button>
+        <button
+          v-if="hasCustomRecordFilters"
+          class="tag-chip active"
+          :style="{ background: vaultColor.dim, color: vaultColor.val, borderColor: 'transparent' }"
+          @click="filterPreferencesOpen = true"
+        >
+          Custom
+        </button>
+      </div>
+      <TagGroups v-else :groups="tagGroups" :active-filters="recordTagFilters" :color="vaultColor" @toggle="toggleTag" />
     </div>
 
     <div class="mosaic">
@@ -507,7 +607,26 @@ onUnmounted(() => {});
       </template>
     </div>
 
-    <button class="fab" @click="openRecordModal('add')">+</button>
+    <div class="fab-stack" :class="{ open: fabOpen }">
+      <button 
+        class="fab-secondary" 
+        title="Filter presets" 
+        aria-label="Open filter preferences" 
+        @click.stop="filterPreferencesOpen = true; fabOpen = false"
+        :style="{ '--i': 0, '--total': 2 }"
+      >
+        F
+      </button>
+      <button 
+        class="fab-secondary" 
+        aria-label="Add record" 
+        @click.stop="openRecordModal('add')"
+        :style="{ '--i': 1, '--total': 2 }"
+      >
+        +
+      </button>
+      <button class="fab" :class="{ open: fabOpen }" @click.stop="fabOpen = !fabOpen">+</button>
+    </div>
 
     <RecordFormModal
       :open="recordModal.open"
@@ -527,6 +646,19 @@ onUnmounted(() => {});
       :target-fields="fields"
       @close="closeImportModal"
       @import="handleImportRecords"
+    />
+
+    <FilterPreferencesModal
+      :open="filterPreferencesOpen"
+      title="Record Filter Presets"
+      :groups="tagGroups"
+      :active-filters="recordTagFilters"
+      :preferences="recordFilterPreferences"
+      :color="vaultColor"
+      @close="filterPreferencesOpen = false"
+      @apply="applyRecordFilters"
+      @save-preference="handleSaveRecordFilterPreference"
+      @delete-preference="handleDeleteRecordFilterPreference"
     />
 
     <TableEditorModal

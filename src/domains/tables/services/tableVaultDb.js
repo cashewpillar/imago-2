@@ -1,5 +1,11 @@
 import Dexie from 'dexie';
-import { getDefaultTableMetaFields, normalizeVault, sanitizeTableMetaSchema } from '../../../shared/utils/tableVault';
+import { HOME_FILTER_PREFERENCES_META_KEY } from '../../../shared/constants/tableVault';
+import {
+  getDefaultTableMetaFields,
+  normalizeVault,
+  sanitizeFilterPreferences,
+  sanitizeTableMetaSchema,
+} from '../../../shared/utils/tableVault';
 
 const db = new Dexie('TableVaultDB');
 db.version(1).stores({ vaults: '++id,name', entries: '++id,tableId,createdAt' });
@@ -81,6 +87,15 @@ export async function setAppMeta(key, value) {
   await db.table('appmeta').put({ key, value: toPlainData(value) });
 }
 
+export async function getHomeFilterPreferences() {
+  const record = await getAppMeta(HOME_FILTER_PREFERENCES_META_KEY);
+  return sanitizeFilterPreferences(record?.value);
+}
+
+export async function setHomeFilterPreferences(preferences) {
+  await setAppMeta(HOME_FILTER_PREFERENCES_META_KEY, sanitizeFilterPreferences(preferences));
+}
+
 export async function getVault(vaultId) {
   const vault = await db.vaults.get(Number(vaultId));
   return vault ? normalizeVault(vault) : null;
@@ -92,6 +107,15 @@ export async function createVault(payload) {
 
 export async function updateVault(vaultId, payload) {
   await db.vaults.update(Number(vaultId), toPlainData(payload));
+}
+
+export async function getRecordFilterPreferences(vaultId) {
+  const vault = await getVault(vaultId);
+  return vault?.recordFilterPreferences || [];
+}
+
+export async function setRecordFilterPreferences(vaultId, preferences) {
+  await updateVault(vaultId, { recordFilterPreferences: sanitizeFilterPreferences(preferences) });
 }
 
 export async function deleteVault(vaultId) {

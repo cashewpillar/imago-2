@@ -186,12 +186,41 @@ export function getFieldSampleValues(entries, fieldKey, limit = 3) {
   return values;
 }
 
+export function sanitizeFilterPreference(item) {
+  if (!item || typeof item !== 'object') return null;
+  const id = String(item.id || '').trim();
+  const name = String(item.name || '').trim();
+  if (!id || !name) return null;
+
+  const filters = Object.fromEntries(
+    Object.entries(item.filters || {})
+      .map(([key, value]) => [
+        String(key),
+        Array.isArray(value) ? value.map(String).filter(Boolean) : [],
+      ])
+      .filter(([, value]) => value.length),
+  );
+
+  return {
+    id,
+    name,
+    filters,
+  };
+}
+
+export function sanitizeFilterPreferences(list) {
+  return (Array.isArray(list) ? list : [])
+    .map((item) => sanitizeFilterPreference(item))
+    .filter(Boolean);
+}
+
 export function normalizeVault(vault) {
   return {
     ...vault,
     meta: typeof vault.meta === 'object' && vault.meta !== null ? vault.meta : {},
     metaFields: sanitizeTableMetaSchema(vault.metaFields || getDefaultTableMetaFields()),
     fields: (vault.fields || []).map((field, index) => normalizeField(field, index)),
+    recordFilterPreferences: sanitizeFilterPreferences(vault.recordFilterPreferences),
     tags: Array.isArray(vault.tags) ? vault.tags.filter(Boolean) : [],
   };
 }
