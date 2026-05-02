@@ -1,6 +1,6 @@
 #### Claude
 ##### Tools
-- use [Dexie.js](database.md)
+- use Dexie.js
 - use Vue3
 ##### Requirements
 - have import (idempotent on a given field)

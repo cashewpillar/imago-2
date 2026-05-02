@@ -8,7 +8,6 @@ import {
   formatDuration,
   formatRangeLabel,
   getEntryTime,
-  getTrendOutlier,
   sumMinutesByMulti,
   sumMinutesBySingle,
   sumMinutesOverTime,
@@ -47,9 +46,8 @@ function renderBars(items, fillClass, formatter = (value) => value) {
 }
 
 const chartModel = computed(() => {
-  const outlier = getTrendOutlier(minuteTrend.value);
-  const points = outlier ? minuteTrend.value.filter((item) => item !== outlier) : minuteTrend.value;
-  if (!points.length) return { points: [], path: '', labels: [], yTicks: [], note: outlier };
+  const points = minuteTrend.value;
+  if (!points.length) return { points: [], path: '', labels: [], yTicks: [] };
 
   const width = 640;
   const height = 220;
@@ -85,7 +83,6 @@ const chartModel = computed(() => {
     path,
     labels,
     yTicks,
-    note: outlier,
   };
 });
 
@@ -168,10 +165,6 @@ onMounted(loadWorkspace);
           </text>
         </svg>
         <div v-else class="al-empty">No minutes data to chart yet.</div>
-
-        <div v-if="chartModel.note" class="al-chart-note">
-          Outlier hidden from scale: {{ chartModel.note.label }} · {{ formatDuration(chartModel.note.value) }}.
-        </div>
       </section>
 
       <section class="al-section">

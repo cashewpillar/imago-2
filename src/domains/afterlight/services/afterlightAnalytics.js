@@ -165,15 +165,6 @@ export function sumMinutesOverTime(entries) {
     }));
 }
 
-export function getTrendOutlier(items) {
-  if (items.length < 4) return null;
-  const sorted = [...items].sort((a, b) => b.value - a.value);
-  const top = sorted[0];
-  const second = sorted[1];
-  if (!second || second.value <= 0) return null;
-  return top.value >= second.value * 2 ? top : null;
-}
-
 export function buildOverviewStats(entries) {
   const total = entries.length;
   const days = new Set(entries.map((entry) => toDateKey(getEntryTime(entry))).filter(Boolean)).size;
