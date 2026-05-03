@@ -3,7 +3,8 @@
 - use Dexie.js
 - use Vue3
 ##### Requirements
-- have import (idempotent on a given field)
+- have import (idempotent on a given field and can resolve to latest if conflicting values)
+- have reset import (overwrite db with the import)
 - have export
 - light mode only 
 

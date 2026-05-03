@@ -161,7 +161,7 @@ async function loadRecords() {
   tableMetaSchema.value = sanitizeTableMetaSchema(schemaMeta?.value || getDefaultTableMetaFields());
   recordFilterPreferences.value = nextPreferences;
   if (!vault.value) {
-    router.replace({ name: 'home' });
+    router.replace({ name: 'tablevault-home' });
     return;
   }
   entries.value = await listEntries(props.tableId);
@@ -169,7 +169,7 @@ async function loadRecords() {
 
 function goHome() {
   fabOpen.value = false;
-  router.push({ name: 'home' });
+  router.push({ name: 'tablevault-home' });
 }
 
 function toggleTag({ groupKey, tag, type, nextValue }) {
@@ -298,7 +298,7 @@ async function handleDeleteTable() {
   if (!window.confirm('Delete this table and all its records?')) return;
   await deleteVault(props.tableId);
   showToast('Table deleted', 'error');
-  router.push({ name: 'home' });
+  router.push({ name: 'tablevault-home' });
 }
 
 async function openImportRecords() {

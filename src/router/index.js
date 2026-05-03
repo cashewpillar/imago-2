@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import HomeView from '../domains/tables/views/HomeView.vue';
+import TableVaultHomeView from '../domains/tables/views/TableVaultHomeView.vue';
 import TableRecordsView from '../domains/records/views/TableRecordsView.vue';
 import AfterlightCreateView from '../domains/afterlight/views/AfterlightCreateView.vue';
 import AfterlightOverviewView from '../domains/afterlight/views/AfterlightOverviewView.vue';
@@ -12,6 +13,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+    },
+    {
+      path: '/tablevault',
+      name: 'tablevault-home',
+      component: TableVaultHomeView,
     },
     {
       path: '/tables/:tableId',
