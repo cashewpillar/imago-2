@@ -3,6 +3,7 @@ import {
   createVault,
   getAppMeta,
   getVault,
+  importEntriesIntoVault,
   listEntries,
   listVaults,
   setAppMeta,
@@ -73,6 +74,76 @@ function formatTitle(data) {
   const action = (data.action || []).join(', ');
   const state = (data.state || []).join(', ');
   return [action, state].filter(Boolean).join(' · ') || 'Afterlight log';
+}
+
+function cleanText(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+function uniqueList(values = []) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function normalizeTextList(value) {
+  if (Array.isArray(value)) return uniqueList(value.map(cleanText));
+  const text = cleanText(value);
+  return text ? [text] : [];
+}
+
+function normalizeMinutes(value) {
+  if (value === '' || value === undefined || value === null) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function resolveLegacyTimestamp(entry, fallbackTimestamp) {
+  const rawDate = cleanText(entry?.rawDate);
+  if (rawDate) {
+    const parsed = new Date(rawDate);
+    if (!Number.isNaN(parsed.getTime())) {
+      return { createdAt: parsed.getTime(), loggedAtUtc: parsed.toISOString() };
+    }
+  }
+
+  const dateKey = cleanText(entry?.date);
+  if (dateKey) {
+    const parsed = new Date(`${dateKey}T12:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      return { createdAt: parsed.getTime(), loggedAtUtc: parsed.toISOString() };
+    }
+  }
+
+  const fallback = Number.isFinite(fallbackTimestamp) ? fallbackTimestamp : Date.now();
+  return { createdAt: fallback, loggedAtUtc: new Date(fallback).toISOString() };
+}
+
+function buildLegacyImportRow(entry, fallbackTimestamp) {
+  const { createdAt, loggedAtUtc } = resolveLegacyTimestamp(entry, fallbackTimestamp);
+  const action = normalizeTextList(entry?.action);
+  const state = normalizeTextList(entry?.state);
+  const location = cleanText(entry?.location);
+  const time = cleanText(entry?.time) || getTimeOfDay(createdAt);
+  const daytype = cleanText(entry?.daytype) || getDayType(createdAt);
+  const agency = cleanText(entry?.agency);
+  const minutes = normalizeMinutes(entry?.minutes);
+  const notes = cleanText(entry?.notes);
+
+  return {
+    createdAt,
+    data: {
+      title: formatTitle({ action, state }),
+      loggedAtUtc,
+      action,
+      state,
+      location,
+      time,
+      daytype,
+      agency,
+      minutes,
+      notes,
+    },
+  };
 }
 
 function normalizeEntry(entry) {
@@ -174,4 +245,70 @@ export async function createAfterlightEntry(formData) {
 
   await createEntry(vault.id, nextData);
   return getAfterlightWorkspace();
+}
+
+export function prepareAfterlightLegacyImport(payload) {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Import file is empty or invalid.');
+  }
+
+  if (!Array.isArray(payload.entries)) {
+    throw new Error('Legacy import needs an entries array.');
+  }
+
+  const exportedAtText = cleanText(payload.exportedAt);
+  const exportedAtTimestamp = exportedAtText ? new Date(exportedAtText).getTime() : Date.now();
+  const rows = payload.entries
+    .map((entry) => buildLegacyImportRow(entry, exportedAtTimestamp))
+    .filter((entry) => entry.data.action.length || entry.data.state.length || entry.data.notes || entry.data.minutes !== null);
+
+  if (!rows.length) {
+    throw new Error('No importable Afterlight entries were found in that file.');
+  }
+
+  return {
+    exportedAt: exportedAtText,
+    totalEntries: Number.isFinite(Number(payload.totalEntries)) ? Number(payload.totalEntries) : payload.entries.length,
+    entries: rows,
+    actionValues: uniqueList(rows.flatMap((entry) => entry.data.action)).sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+export async function importAfterlightLegacyEntries(plan, actionUpdates = {}) {
+  const vault = await ensureAfterlightVault();
+  const actionMap = new Map(
+    Object.entries(actionUpdates || {}).map(([source, target]) => [cleanText(source), cleanText(target) || cleanText(source)]),
+  );
+
+  const importedEntries = (plan?.entries || []).map((entry) => {
+    const action = uniqueList(entry.data.action.map((value) => actionMap.get(cleanText(value)) || cleanText(value)));
+    return {
+      createdAt: entry.createdAt,
+      data: {
+        ...entry.data,
+        action,
+        title: formatTitle({ action, state: entry.data.state }),
+      },
+    };
+  });
+
+  if (!importedEntries.length) {
+    throw new Error('No importable entries were prepared.');
+  }
+
+  const nextFields = (vault.fields || []).map((field) => {
+    const values = importedEntries.flatMap((entry) => {
+      const value = entry.data[field.key];
+      if (Array.isArray(value)) return value;
+      return value ? [value] : [];
+    });
+
+    return mergeFieldOptions(field, values);
+  });
+
+  await importEntriesIntoVault(vault.id, nextFields, importedEntries);
+  return {
+    imported: importedEntries.length,
+    workspace: await getAfterlightWorkspace(),
+  };
 }

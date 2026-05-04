@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import AfterlightLegacyImportLauncher from '../components/AfterlightLegacyImportLauncher.vue';
 import AfterlightShell from '../components/AfterlightShell.vue';
 import { getAfterlightWorkspace } from '../services/afterlightDb';
 import {
@@ -70,6 +71,8 @@ onMounted(loadWorkspace);
 
 <template>
   <AfterlightShell title="vision" :meta="headerMeta">
+    <AfterlightLegacyImportLauncher @imported="loadWorkspace" />
+
     <div class="al-filter-row">
       <button
         v-for="option in rangeOptions"
