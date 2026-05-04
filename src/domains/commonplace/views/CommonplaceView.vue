@@ -223,6 +223,21 @@ function parseRefLabel(label, contextTs = null, absoluteIso = null) {
   return parsed;
 }
 
+function normalizeLegacyRefsInText(text, baseTs = null) {
+  const source = String(text || '');
+  if (!source) return { value: source, count: 0 };
+  let refAnchorTs = baseTs || null;
+  let count = 0;
+  const value = source.replace(/\((\d{1,2} [A-Za-z]{3}, \d{2}:\d{2}): (.*?)\)/g, (full, label, body) => {
+    const parsed = parseRefLabel(label, refAnchorTs);
+    if (!parsed) return full;
+    refAnchorTs = parsed.getTime();
+    count += 1;
+    return `(${parsed.toISOString()}: ${body})`;
+  });
+  return { value, count };
+}
+
 function formatRelativeLater(fromTs, toTs) {
   if (!fromTs || !toTs) return null;
   const delta = Math.max(0, toTs - fromTs);
@@ -1389,6 +1404,47 @@ async function resetData() {
   showToast('All data cleared', 'success');
 }
 
+async function normalizeLegacyRefs() {
+  closeMenu();
+  if (!window.confirm('Normalize legacy inline note references to ISO UTC format? Existing display will stay human-friendly.')) return;
+
+  const [media, moments] = await Promise.all([db.media.toArray(), db.moments.toArray()]);
+  let changedRecords = 0;
+  let normalizedRefs = 0;
+
+  for (const item of media) {
+    const reason = normalizeLegacyRefsInText(item.reason || '', item.createdAt || null);
+    if (!reason.count) continue;
+    await db.media.update(item.id, { reason: reason.value, updatedAt: Date.now() });
+    changedRecords += 1;
+    normalizedRefs += reason.count;
+  }
+
+  for (const item of moments) {
+    const thought = normalizeLegacyRefsInText(item.thought || '', item.createdAt || null);
+    const connection = normalizeLegacyRefsInText(item.connection || '', item.createdAt || null);
+    const line = normalizeLegacyRefsInText(item.line || '', item.createdAt || null);
+    const updates = {};
+    if (thought.count) updates.thought = thought.value;
+    if (connection.count) updates.connection = connection.value;
+    if (line.count) updates.line = line.value;
+    const refCount = thought.count + connection.count + line.count;
+    if (!refCount) continue;
+    updates.updatedAt = Date.now();
+    await db.moments.update(item.id, updates);
+    changedRecords += 1;
+    normalizedRefs += refCount;
+  }
+
+  await loadAll();
+  showToast(
+    normalizedRefs
+      ? `Normalized ${normalizedRefs} reference${normalizedRefs === 1 ? '' : 's'} across ${changedRecords} record${changedRecords === 1 ? '' : 's'}`
+      : 'No legacy references found',
+    'success',
+  );
+}
+
 function handleRootClick(e) {
   const learnMore = e.target.closest('.cdh-tip-link');
   if (learnMore) {
@@ -1620,6 +1676,7 @@ onBeforeUnmount(() => {
       :story-import-input-id="storyImportInputId"
       @close="closeMenu"
       @export="performExport"
+      @normalize-refs="normalizeLegacyRefs"
       @reset="resetData"
     />
 

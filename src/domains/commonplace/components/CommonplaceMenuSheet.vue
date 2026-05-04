@@ -14,7 +14,7 @@ defineProps({
   },
 });
 
-defineEmits(['close', 'export', 'reset']);
+defineEmits(['close', 'export', 'normalize-refs', 'reset']);
 </script>
 
 <template>
@@ -25,6 +25,7 @@ defineEmits(['close', 'export', 'reset']);
       <div class="mi" @click="$emit('export')"><span class="mi-ico">↓</span><div><div>Export all</div><div class="mi-sub">Download as JSON</div></div></div>
       <label class="mi" :for="importInputId"><span class="mi-ico">↑</span><div><div>Import</div><div class="mi-sub">Merge from JSON file</div></div></label>
       <label class="mi" :for="storyImportInputId"><span class="mi-ico">↗</span><div><div>Import from Story</div><div class="mi-sub">Bring in books and captured lines</div></div></label>
+      <div class="mi" @click="$emit('normalize-refs')"><span class="mi-ico">⟳</span><div><div>Normalize legacy refs</div><div class="mi-sub">Convert old inline timestamps to ISO UTC</div></div></div>
       <div class="mdiv"></div>
       <div class="mi" @click="$emit('reset')"><span class="mi-ico">⚠</span><div><div>Reset Data</div><div class="mi-sub">Wipe all data from this device</div></div></div>
       <div class="mdiv"></div>
