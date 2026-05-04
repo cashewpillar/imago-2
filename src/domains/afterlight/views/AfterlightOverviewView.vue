@@ -71,7 +71,9 @@ onMounted(loadWorkspace);
 
 <template>
   <AfterlightShell title="vision" :meta="headerMeta">
-    <AfterlightLegacyImportLauncher @imported="loadWorkspace" />
+    <template #header-actions>
+      <AfterlightLegacyImportLauncher @imported="loadWorkspace" />
+    </template>
 
     <div class="al-filter-row">
       <button

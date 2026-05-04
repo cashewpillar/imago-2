@@ -17,6 +17,21 @@
   padding: 40px 0 24px;
 }
 
+.al-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.al-header-actions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
 .al-label {
   font-size: 10px;
   letter-spacing: 0.2em;
@@ -308,20 +323,6 @@
   flex-wrap: wrap;
 }
 
-.al-import-launcher {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.al-import-trigger {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.al-hidden-input {
-  display: none;
-}
-
 .al-import-stack {
   display: flex;
   flex-direction: column;
@@ -535,6 +536,10 @@
   .al-stats-grid {
     grid-template-columns: 1fr;
     gap: 18px;
+  }
+
+  .al-header-top {
+    align-items: flex-start;
   }
 
   .al-import-mapping-row {

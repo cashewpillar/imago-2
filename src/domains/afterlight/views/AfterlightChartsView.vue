@@ -97,7 +97,9 @@ onMounted(loadWorkspace);
 
 <template>
   <AfterlightShell title="clairvoyance" :meta="headerMeta">
-    <AfterlightLegacyImportLauncher @imported="loadWorkspace" />
+    <template #header-actions>
+      <AfterlightLegacyImportLauncher @imported="loadWorkspace" />
+    </template>
 
     <div class="al-filter-row">
       <button
