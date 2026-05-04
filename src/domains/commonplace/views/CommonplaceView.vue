@@ -235,6 +235,135 @@ function formatRefAbsolute(ts) {
   return new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function cleanTextValue(value) {
+  return String(value || '').replace(/\r\n/g, '\n').trim();
+}
+
+function normalizeForCompare(value) {
+  return cleanTextValue(value)
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function splitParagraphs(value) {
+  const text = cleanTextValue(value);
+  return text ? text.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean) : [];
+}
+
+function tokenSimilarity(a, b) {
+  const aTokens = normalizeForCompare(a).split(' ').filter(Boolean);
+  const bTokens = normalizeForCompare(b).split(' ').filter(Boolean);
+  if (!aTokens.length && !bTokens.length) return 1;
+  if (!aTokens.length || !bTokens.length) return 0;
+  const aCounts = new Map();
+  aTokens.forEach((token) => aCounts.set(token, (aCounts.get(token) || 0) + 1));
+  let overlap = 0;
+  bTokens.forEach((token) => {
+    const count = aCounts.get(token) || 0;
+    if (count > 0) {
+      overlap += 1;
+      aCounts.set(token, count - 1);
+    }
+  });
+  return (2 * overlap) / (aTokens.length + bTokens.length);
+}
+
+function buildParagraphConflict(localParagraph, importedParagraph) {
+  return [
+    '**[Conflict retained below]**',
+    '**Import:**',
+    importedParagraph,
+    '**Local:**',
+    localParagraph,
+  ].join('\n');
+}
+
+function mergeTextPreservingBoth(localValue, importedValue) {
+  const localText = cleanTextValue(localValue);
+  const importedText = cleanTextValue(importedValue);
+  if (!localText) return { value: importedText, changed: Boolean(importedText) };
+  if (!importedText) return { value: localText, changed: false };
+  if (localText === importedText) return { value: localText, changed: false };
+  if (normalizeForCompare(localText) === normalizeForCompare(importedText)) {
+    return { value: localText.length >= importedText.length ? localText : importedText, changed: localText.length < importedText.length };
+  }
+  if (localText.includes(importedText)) return { value: localText, changed: false };
+  if (importedText.includes(localText)) return { value: importedText, changed: true };
+  if (localText.includes('[Conflict retained below]') || (localText.includes('Imported version:') && localText.includes('Local version:'))) {
+    return { value: localText, changed: false };
+  }
+
+  const localParagraphs = splitParagraphs(localText);
+  const importedParagraphs = splitParagraphs(importedText);
+  if (localParagraphs.length && importedParagraphs.length && Math.abs(localParagraphs.length - importedParagraphs.length) <= 1) {
+    const mergedParagraphs = [];
+    const maxLength = Math.max(localParagraphs.length, importedParagraphs.length);
+    let paragraphChanged = false;
+    let hardConflict = false;
+    for (let index = 0; index < maxLength; index += 1) {
+      const localParagraph = localParagraphs[index] || '';
+      const importedParagraph = importedParagraphs[index] || '';
+      if (!localParagraph && importedParagraph) {
+        mergedParagraphs.push(importedParagraph);
+        paragraphChanged = true;
+        continue;
+      }
+      if (localParagraph && !importedParagraph) {
+        mergedParagraphs.push(localParagraph);
+        continue;
+      }
+      const normalizedLocal = normalizeForCompare(localParagraph);
+      const normalizedImported = normalizeForCompare(importedParagraph);
+      if (normalizedLocal === normalizedImported) {
+        mergedParagraphs.push(localParagraph.length >= importedParagraph.length ? localParagraph : importedParagraph);
+        if (localParagraph.length < importedParagraph.length) paragraphChanged = true;
+        continue;
+      }
+      if (normalizedLocal.includes(normalizedImported)) {
+        mergedParagraphs.push(localParagraph);
+        continue;
+      }
+      if (normalizedImported.includes(normalizedLocal)) {
+        mergedParagraphs.push(importedParagraph);
+        paragraphChanged = true;
+        continue;
+      }
+      const similarity = tokenSimilarity(localParagraph, importedParagraph);
+      if (similarity >= 0.72) {
+        mergedParagraphs.push(buildParagraphConflict(localParagraph, importedParagraph));
+        paragraphChanged = true;
+      } else {
+        hardConflict = true;
+        break;
+      }
+    }
+    if (!hardConflict) {
+      const mergedParagraphText = mergedParagraphs.join('\n\n');
+      return { value: mergedParagraphText, changed: paragraphChanged && mergedParagraphText !== localText };
+    }
+  }
+
+  const merged = `Imported version:\n${importedText}\n\nLocal version:\n${localText}`;
+  if (localText === merged) return { value: localText, changed: false };
+  return { value: merged, changed: true };
+}
+
+function mergeScalarPreferLocal(localValue, importedValue) {
+  const localText = cleanTextValue(localValue);
+  const importedText = cleanTextValue(importedValue);
+  if (!localText && importedText) return { value: importedText, changed: true };
+  return { value: localValue, changed: false };
+}
+
+function mergeTagLists(localTags, importedTags) {
+  const merged = sortTags([...(localTags || []), ...(importedTags || [])]);
+  const current = sortTags(localTags || []);
+  return { value: merged, changed: JSON.stringify(merged) !== JSON.stringify(current) };
+}
+
 function distortionRegex(rule) {
   return new RegExp(rule.regex.source.replace(/'/g, "['\\u2019]"), rule.regex.flags);
 }
@@ -1008,7 +1137,7 @@ async function handleImport(file) {
   });
   const medMap = {};
   const momMap = {};
-  let addedMedia = 0; let addedMoments = 0; let addedRelations = 0; let skippedMedia = 0; let skippedMoments = 0; let skippedRelations = 0;
+  let addedMedia = 0; let addedMoments = 0; let addedRelations = 0; let mergedMedia = 0; let mergedMoments = 0; let skippedMedia = 0; let skippedMoments = 0; let skippedRelations = 0;
   for (const item of media) {
     const uuid = item.uuid || null;
     const fp = mediaFingerprint(item);
@@ -1016,14 +1145,22 @@ async function handleImport(file) {
     if (existing) {
       const updates = {};
       if (uuid && !existing.uuid) updates.uuid = uuid;
-      if (item.status && !existing.status) updates.status = item.status;
+      if (!existing.type && item.type) updates.type = item.type;
+      if (!existing.status && item.status) updates.status = item.status;
+      if (!cleanTextValue(existing.title) && cleanTextValue(item.title)) updates.title = item.title;
+      if (!cleanTextValue(existing.creator) && cleanTextValue(item.creator)) updates.creator = item.creator;
+      const mergedReason = mergeTextPreservingBoth(existing.reason, item.reason);
+      if (mergedReason.changed) updates.reason = mergedReason.value;
       if (Object.keys(updates).length) {
-        updates.updatedAt = existing.updatedAt || existing.createdAt || Date.now();
+        updates.updatedAt = Date.now();
         await db.media.update(existing.id, updates);
         existing = { ...existing, ...updates };
+        mergedMedia += 1;
+      } else {
+        skippedMedia += 1;
       }
       medMap[item.id] = existing.id;
-      skippedMedia += 1;
+      mediaByFingerprint.set(mediaFingerprint(existing), existing);
       continue;
     }
     const payload = { uuid: uuid || makeUuid(), type: item.type || 'book', status: item.status || 'in-progress', title: item.title || '', creator: item.creator || '', reason: item.reason || '', createdAt: item.createdAt || Date.now(), updatedAt: item.updatedAt || item.createdAt || Date.now() };
@@ -1043,8 +1180,29 @@ async function handleImport(file) {
     const fp = momentFingerprint(item, stableMediaKey(parentMedia));
     let existing = (uuid && momentByUuid.get(uuid)) || momentByFingerprint.get(fp);
     if (existing) {
+      const updates = {};
+      if (uuid && !existing.uuid) updates.uuid = uuid;
+      if (!existing.mediaUuid && item.mediaUuid) updates.mediaUuid = item.mediaUuid;
+      const mergedAnchor = mergeScalarPreferLocal(existing.anchor, item.anchor);
+      if (mergedAnchor.changed) updates.anchor = mergedAnchor.value;
+      const mergedThought = mergeTextPreservingBoth(existing.thought, item.thought);
+      if (mergedThought.changed) updates.thought = mergedThought.value;
+      const mergedConnection = mergeTextPreservingBoth(existing.connection, item.connection);
+      if (mergedConnection.changed) updates.connection = mergedConnection.value;
+      const mergedLine = mergeTextPreservingBoth(existing.line, item.line);
+      if (mergedLine.changed) updates.line = mergedLine.value;
+      const mergedTags = mergeTagLists(existing.tags, item.tags);
+      if (mergedTags.changed) updates.tags = mergedTags.value;
+      if (Object.keys(updates).length) {
+        updates.updatedAt = Date.now();
+        await db.moments.update(existing.id, updates);
+        existing = { ...existing, ...updates };
+        mergedMoments += 1;
+      } else {
+        skippedMoments += 1;
+      }
       momMap[item.id] = existing.id;
-      skippedMoments += 1;
+      momentByFingerprint.set(momentFingerprint(existing, stableMediaKey(parentMedia)), existing);
       continue;
     }
     const payload = { uuid: uuid || makeUuid(), mediaId: mappedMediaId, mediaUuid: item.mediaUuid || parentMedia?.uuid || null, anchor: item.anchor || '', thought: item.thought || '', connection: item.connection || '', line: item.line || '', tags: sortTags(item.tags), createdAt: item.createdAt || Date.now(), updatedAt: item.updatedAt || item.createdAt || Date.now() };
@@ -1071,7 +1229,7 @@ async function handleImport(file) {
     addedRelations += 1;
   }
   await loadAll();
-  showToast(`Imported ${addedMedia} media, ${addedMoments} moments, ${addedRelations} links · skipped ${skippedMedia + skippedMoments + skippedRelations}`, 'success');
+  showToast(`Imported ${addedMedia} media, ${addedMoments} moments, ${addedRelations} links · merged ${mergedMedia + mergedMoments} · skipped ${skippedMedia + skippedMoments + skippedRelations}`, 'success');
 }
 
 async function handleStoryImport(file) {
@@ -1089,7 +1247,7 @@ async function handleStoryImport(file) {
     const mediaItem = existingMedia.find((m) => m.id === x.mediaId);
     momentByFingerprint.set(momentFingerprint(x, stableMediaKey(mediaItem)), x);
   });
-  let addedMedia = 0; let addedMoments = 0; let skippedMoments = 0;
+  let addedMedia = 0; let addedMoments = 0; let mergedMedia = 0; let mergedMoments = 0; let skippedMoments = 0;
   for (const book of books) {
     const noteDates = (book.notes || []).map((note) => Number(note.date) || 0).filter(Boolean);
     const bookCreatedAt = noteDates.length ? Math.min(...noteDates) : Date.now();
@@ -1103,6 +1261,12 @@ async function handleStoryImport(file) {
       existingMedia.push(mediaItem);
       mediaByFingerprint.set(mediaFp, mediaItem);
       addedMedia += 1;
+    } else if (!cleanTextValue(mediaItem.creator) && cleanTextValue(book.author)) {
+      const updates = { creator: book.author, updatedAt: Date.now() };
+      await db.media.update(mediaItem.id, updates);
+      mediaItem = { ...mediaItem, ...updates };
+      mediaByFingerprint.set(mediaFp, mediaItem);
+      mergedMedia += 1;
     }
     for (const note of (book.notes || [])) {
       const thoughtParts = [];
@@ -1111,8 +1275,26 @@ async function handleStoryImport(file) {
       if (note.stanceNote) thoughtParts.push(String(note.stanceNote).trim());
       const momentPayload = { mediaId: mediaItem.id, mediaUuid: mediaItem.uuid || null, anchor: note.location || '', thought: thoughtParts.filter(Boolean).join('\n\n'), connection: '', line: note.text || '', tags: sortTags((note.tags || []).map(storyTagToCommonplace).filter(Boolean)), createdAt: note.date || Date.now(), updatedAt: note.date || Date.now() };
       const fp = momentFingerprint(momentPayload, stableMediaKey(mediaItem));
-      if (momentByFingerprint.has(fp)) {
-        skippedMoments += 1;
+      const existing = momentByFingerprint.get(fp);
+      if (existing) {
+        const updates = {};
+        const mergedAnchor = mergeScalarPreferLocal(existing.anchor, momentPayload.anchor);
+        if (mergedAnchor.changed) updates.anchor = mergedAnchor.value;
+        const mergedThought = mergeTextPreservingBoth(existing.thought, momentPayload.thought);
+        if (mergedThought.changed) updates.thought = mergedThought.value;
+        const mergedLine = mergeTextPreservingBoth(existing.line, momentPayload.line);
+        if (mergedLine.changed) updates.line = mergedLine.value;
+        const mergedTags = mergeTagLists(existing.tags, momentPayload.tags);
+        if (mergedTags.changed) updates.tags = mergedTags.value;
+        if (Object.keys(updates).length) {
+          updates.updatedAt = Date.now();
+          await db.moments.update(existing.id, updates);
+          const mergedExisting = { ...existing, ...updates };
+          momentByFingerprint.set(momentFingerprint(mergedExisting, stableMediaKey(mediaItem)), mergedExisting);
+          mergedMoments += 1;
+        } else {
+          skippedMoments += 1;
+        }
         continue;
       }
       const insertPayload = { uuid: makeUuid(), ...momentPayload };
@@ -1124,7 +1306,7 @@ async function handleStoryImport(file) {
     }
   }
   await loadAll();
-  showToast(`Imported ${addedMedia} books, ${addedMoments} moments · skipped ${skippedMoments}`, 'success');
+  showToast(`Imported ${addedMedia} books, ${addedMoments} moments · merged ${mergedMedia + mergedMoments} · skipped ${skippedMoments}`, 'success');
 }
 
 async function resetData() {
