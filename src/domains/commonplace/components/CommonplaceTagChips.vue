@@ -8,13 +8,17 @@ defineProps({
     type: String,
     default: null,
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 defineEmits(['toggle']);
 </script>
 
 <template>
-  <div class="tag-row">
+  <div class="tag-row" :class="{ compact }">
     <button
       v-for="item in items"
       :key="item.key"

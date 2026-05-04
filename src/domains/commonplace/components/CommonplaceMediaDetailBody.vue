@@ -29,12 +29,11 @@ defineEmits(['toggle-tag', 'add-moment', 'open-moment', 'open-tag', 'jump']);
         v-html="detail.reasonHtml"
       ></div>
       <div v-if="detail.tags.length" class="md-tags" style="margin-top:10px; border-top:1px solid var(--b); padding-top:10px;">
-        <CommonplaceTagChips :items="detail.tags" :active-key="detail.activeTag" @toggle="$emit('toggle-tag', $event)" />
+        <CommonplaceTagChips compact :items="detail.tags" :active-key="detail.activeTag" @toggle="$emit('toggle-tag', $event)" />
       </div>
     </div>
     <div class="sec-head">
       <span class="sec-lbl">Moments {{ detail.countSuffix }}</span>
-      <button class="btn" style="font-size:12px;padding:5px 10px;" @click="$emit('add-moment', detail.id)">+ add moment</button>
     </div>
     <div class="moments-wrap">
       <div v-if="!detail.moments.length" class="no-mom">{{ detail.emptyText }}</div>
@@ -48,5 +47,6 @@ defineEmits(['toggle-tag', 'add-moment', 'open-moment', 'open-tag', 'jump']);
         @jump="$emit('jump', $event)"
       />
     </div>
+    <button class="fab" aria-label="Add moment" @click="$emit('add-moment', detail.id)">+</button>
   </div>
 </template>

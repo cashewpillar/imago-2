@@ -114,6 +114,7 @@
 
 /* TAG ROW */
 .cp-domain .tag-row{display:flex;flex-wrap:wrap;gap:5px;padding:2px 14px 10px;}
+.cp-domain .tag-row.compact{padding:0;}
 
 /* STATS */
 .cp-domain .stats{display:flex;padding:0 14px 12px;gap:0;}
@@ -246,6 +247,7 @@
 .cp-domain .chip-t{border-color:rgba(26,107,90,.3);color:var(--teal);}
 .cp-domain .chip-t.on{background:var(--teal);border-color:var(--teal);color:#fff;}
 .cp-domain .tag-row{display:flex !important;flex-direction:row !important;flex-wrap:wrap;align-items:flex-start;gap:5px;padding:2px 14px 10px;}
+.cp-domain .tag-row.compact{padding:0 !important;}
 .cp-domain .tag-row .chip,
 .cp-domain .md-tags .chip{display:inline-flex !important;width:auto !important;max-width:max-content;flex:0 0 auto;}
 .cp-domain .fab{position:fixed;right:18px;left:auto;bottom:68px;width:50px;height:50px;border-radius:50%;background:var(--ink);color:var(--cream);border:none;font-size:24px;font-weight:400;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 14px rgba(26,23,20,.22);z-index:200;transition:transform .13s;transform:none;}
