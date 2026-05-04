@@ -5,6 +5,7 @@ import TableRecordsView from '../domains/records/views/TableRecordsView.vue';
 import AfterlightCreateView from '../domains/afterlight/views/AfterlightCreateView.vue';
 import AfterlightOverviewView from '../domains/afterlight/views/AfterlightOverviewView.vue';
 import AfterlightChartsView from '../domains/afterlight/views/AfterlightChartsView.vue';
+import CommonplaceView from '../domains/commonplace/views/CommonplaceView.vue';
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -43,6 +44,11 @@ const router = createRouter({
       path: '/afterlight/charts',
       name: 'afterlight-charts',
       component: AfterlightChartsView,
+    },
+    {
+      path: '/commonplace',
+      name: 'commonplace',
+      component: CommonplaceView,
     },
   ],
 });

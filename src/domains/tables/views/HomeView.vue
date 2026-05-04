@@ -12,6 +12,11 @@ const items = [
     meta: 'track',
     to: { name: 'afterlight-log' },
   },
+  {
+    label: 'commonplace',
+    meta: 'library and moments',
+    to: { name: 'commonplace' },
+  },
 ];
 </script>
 
