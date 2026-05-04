@@ -18,6 +18,11 @@ defineEmits(['toggle-tag', 'add-moment', 'open-moment', 'open-tag', 'jump']);
       <div class="md-type">{{ detail.typeLabel }}</div>
       <div class="md-title">{{ detail.title }}</div>
       <div v-if="detail.creator" class="md-creator">{{ detail.creator }}</div>
+      <div v-if="detail.startedAtLabel || detail.finishedAtLabel" class="md-dates" style="font-size: 11px; opacity: 0.6; margin-top: 4px;">
+        <span v-if="detail.startedAtLabel">Started {{ detail.startedAtLabel }}</span>
+        <span v-if="detail.startedAtLabel && detail.finishedAtLabel"> • </span>
+        <span v-if="detail.finishedAtLabel">Finished {{ detail.finishedAtLabel }}</span>
+      </div>
       <div
         v-if="detail.reasonHtml"
         style="padding:4px 0 0; opacity:0.8; font-size:13px; font-family:'Lora',serif; line-height:1.6; font-style:italic;"

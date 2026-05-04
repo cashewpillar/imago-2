@@ -43,7 +43,7 @@ const distortionGlossaryExpanded = ref(false);
 const distortionGlossaryHtml = ref('');
 const distortionTipHtml = ref('');
 const distortionTipState = ref({ show: false, left: 0, top: 0, place: 'above', align: 'center' });
-const mediaForm = ref({ type: 'book', status: 'in-progress', title: '', creator: '' });
+const mediaForm = ref({ type: 'book', status: 'in-progress', title: '', creator: '', startedAt: '', finishedAt: '' });
 const momentForm = ref({ anchor: '', date: '', tagInput: '' });
 const activeTags = ref([]);
 const relationRows = ref([]);
@@ -133,6 +133,13 @@ function fdtLocal(ts) {
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fdtInput(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function fdtRef() {
@@ -697,6 +704,8 @@ function renderMD(id) {
     typeLabel: TL[m.type] || m.type,
     title: m.title || 'Untitled',
     creator: m.creator || '',
+    startedAtLabel: m.startedAt ? fdt(m.startedAt) : '',
+    finishedAtLabel: m.finishedAt ? fdt(m.finishedAt) : '',
     reasonHtml: m.reason ? parseMd(m.reason, m.createdAt) : '',
     tags,
     activeTag: mdTag,
@@ -946,12 +955,19 @@ async function openMediaEditor(id = null) {
   let reasonBaseTs = Date.now();
   if (id) {
     const m = AM.find((x) => x.id === id);
-    mediaForm.value = { type: m.type || 'book', status: m.status || 'in-progress', title: m.title || '', creator: m.creator || '' };
+    mediaForm.value = { 
+      type: m.type || 'book', 
+      status: m.status || 'in-progress', 
+      title: m.title || '', 
+      creator: m.creator || '',
+      startedAt: fdtInput(m.startedAt),
+      finishedAt: fdtInput(m.finishedAt),
+    };
     editorMeta.value = fdtFull(m.createdAt);
     reasonText = m.reason || '';
     reasonBaseTs = m.createdAt;
   } else {
-    mediaForm.value = { type: 'book', status: 'in-progress', title: '', creator: '' };
+    mediaForm.value = { type: 'book', status: 'in-progress', title: '', creator: '', startedAt: '', finishedAt: '' };
     editorMeta.value = '';
   }
   activeView.value = 'med';
@@ -968,7 +984,20 @@ async function saveMedia() {
     return;
   }
   const existing = edMediaId ? AM.find((x) => x.id === edMediaId) : null;
-  const data = { uuid: existing?.uuid || makeUuid(), type: mediaForm.value.type, status: mediaForm.value.status, title, creator: mediaForm.value.creator.trim(), reason: getBlks('me-reason-blks'), createdAt: existing?.createdAt || Date.now(), updatedAt: Date.now() };
+  const startedAt = mediaForm.value.startedAt ? new Date(mediaForm.value.startedAt).getTime() : null;
+  const finishedAt = mediaForm.value.finishedAt ? new Date(mediaForm.value.finishedAt).getTime() : null;
+  const data = { 
+    uuid: existing?.uuid || makeUuid(), 
+    type: mediaForm.value.type, 
+    status: mediaForm.value.status, 
+    title, 
+    creator: mediaForm.value.creator.trim(), 
+    startedAt,
+    finishedAt,
+    reason: getBlks('me-reason-blks'), 
+    createdAt: existing?.createdAt || Date.now(), 
+    updatedAt: Date.now() 
+  };
   if (edMediaId) {
     await db.media.update(edMediaId, data);
     showToast('Updated', 'success');
