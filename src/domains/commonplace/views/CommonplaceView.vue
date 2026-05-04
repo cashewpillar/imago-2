@@ -66,6 +66,7 @@ const vStack = [];
 let activeDistortionMark = null;
 let pinnedDistortionMark = null;
 let activeDistortionCategory = null;
+let activeDistortionAnchorPoint = null;
 let distortionHoverTimer = null;
 let pendingHoverMark = null;
 
@@ -477,6 +478,7 @@ function closeDistortionTips(exceptEl = null) {
   if (!exceptEl) {
     activeDistortionMark = null;
     pinnedDistortionMark = null;
+    activeDistortionAnchorPoint = null;
   }
   if (!exceptEl || activeDistortionMark !== exceptEl) clearTip();
 }
@@ -519,7 +521,8 @@ function showDistortionTip(mark, anchorPoint = null) {
   `).join('');
   distortionTipState.value = { ...distortionTipState.value, show: true };
   activeDistortionMark = mark;
-  requestAnimationFrame(() => positionDistortionTip(mark, anchorPoint));
+  if (anchorPoint) activeDistortionAnchorPoint = anchorPoint;
+  requestAnimationFrame(() => positionDistortionTip(mark, anchorPoint || activeDistortionAnchorPoint));
 }
 
 function openDistortionTip(mark, { pinned = false, anchorPoint = null } = {}) {
@@ -836,7 +839,10 @@ function addBlk(cid, val = '', focus = false, afterEl = null) {
   ta.addEventListener('input', () => taInput(ta));
   ta.addEventListener('blur', () => bView(ta, view, c.dataset.baseTs ? Number(c.dataset.baseTs) : null));
   ta.addEventListener('keydown', (event) => blkKey(event, ta));
-  view.addEventListener('click', () => bEdit(ta, view));
+  view.addEventListener('click', (event) => {
+    if (event.target.closest('.cdh-mark, .cdh-tip-link, a, button')) return;
+    bEdit(ta, view);
+  });
   remove.addEventListener('click', () => rmBlk(div));
   div.append(ta, view, remove);
   if (afterEl) afterEl.after(div);
@@ -1453,7 +1459,7 @@ function handleStoryImportPick(e) {
 }
 
 function onWindowMove() {
-  if (activeDistortionMark) positionDistortionTip(activeDistortionMark);
+  if (activeDistortionMark) positionDistortionTip(activeDistortionMark, activeDistortionAnchorPoint);
 }
 
 onMounted(async () => {
