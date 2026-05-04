@@ -481,15 +481,15 @@ function closeDistortionTips(exceptEl = null) {
   if (!exceptEl || activeDistortionMark !== exceptEl) clearTip();
 }
 
-function positionDistortionTip(mark) {
+function positionDistortionTip(mark, anchorPoint = null) {
   const tip = get('cdh-tip');
   if (!mark || !tip || !distortionTipState.value.show) return;
   const rect = mark.getBoundingClientRect();
   const tipRect = tip.getBoundingClientRect();
   const margin = 12;
-  const anchorCenter = rect.left + rect.width / 2;
-  const anchorLeft = Math.max(margin, rect.left);
-  const anchorRight = Math.min(window.innerWidth - margin, rect.right);
+  const anchorCenter = anchorPoint?.x ?? (rect.left + rect.width / 2);
+  const anchorLeft = Math.max(margin, anchorPoint?.x ?? rect.left);
+  const anchorRight = Math.min(window.innerWidth - margin, anchorPoint?.x ?? rect.right);
   const spaceLeft = anchorCenter - margin;
   const spaceRight = window.innerWidth - margin - anchorCenter;
   let left = anchorCenter;
@@ -501,12 +501,14 @@ function positionDistortionTip(mark) {
     left = anchorRight;
     align = 'right';
   }
-  const fitsAbove = rect.top - tipRect.height - 10 >= margin;
-  const top = fitsAbove ? rect.top - 10 : Math.min(window.innerHeight - margin - tipRect.height, rect.bottom + 10);
+  const anchorTop = anchorPoint?.y ?? rect.top;
+  const anchorBottom = anchorPoint?.y ?? rect.bottom;
+  const fitsAbove = anchorTop - tipRect.height - 10 >= margin;
+  const top = fitsAbove ? anchorTop - 10 : Math.min(window.innerHeight - margin - tipRect.height, anchorBottom + 10);
   distortionTipState.value = { show: true, left, top: Math.max(margin, top), place: fitsAbove ? 'above' : 'below', align };
 }
 
-function showDistortionTip(mark) {
+function showDistortionTip(mark, anchorPoint = null) {
   const items = JSON.parse(decodeURIComponent(mark.dataset.matches || '%5B%5D'));
   if (!items.length) return;
   distortionTipHtml.value = items.map((item) => `
@@ -517,16 +519,16 @@ function showDistortionTip(mark) {
   `).join('');
   distortionTipState.value = { ...distortionTipState.value, show: true };
   activeDistortionMark = mark;
-  requestAnimationFrame(() => positionDistortionTip(mark));
+  requestAnimationFrame(() => positionDistortionTip(mark, anchorPoint));
 }
 
-function openDistortionTip(mark, { pinned = false } = {}) {
+function openDistortionTip(mark, { pinned = false, anchorPoint = null } = {}) {
   if (distortionHoverTimer) clearTimeout(distortionHoverTimer);
   pendingHoverMark = null;
   rootRef.value?.querySelectorAll('.cdh-mark.is-open').forEach((el) => { if (el !== mark) el.classList.remove('is-open'); });
   mark.classList.add('is-open');
   if (pinned) pinnedDistortionMark = mark;
-  showDistortionTip(mark);
+  showDistortionTip(mark, anchorPoint);
 }
 
 function renderDistortionGlossary() {
@@ -1002,12 +1004,37 @@ function addTagFromInput() {
   momentForm.value.tagInput = '';
 }
 
+function tryCommitTagsFromInput() {
+  const raw = String(momentForm.value.tagInput || '');
+  if (!raw) return;
+  const endsWithSeparator = /[\s,;]$/.test(raw);
+  if (!endsWithSeparator) return;
+  const parts = raw.split(/[\s,;]+/).map((part) => part.trim().toLowerCase()).filter(Boolean);
+  if (!parts.length) {
+    momentForm.value.tagInput = '';
+    return;
+  }
+  activeTags.value = sortTags([...activeTags.value, ...parts]);
+  momentForm.value.tagInput = '';
+}
+
+function commitRemainingTagInput() {
+  const raw = String(momentForm.value.tagInput || '').trim();
+  if (!raw) return;
+  const parts = raw.split(/[\s,;]+/).map((part) => part.trim().toLowerCase()).filter(Boolean);
+  if (!parts.length) {
+    momentForm.value.tagInput = '';
+    return;
+  }
+  activeTags.value = sortTags([...activeTags.value, ...parts]);
+  momentForm.value.tagInput = '';
+}
+
 function handleTagKey(e) {
   if ((e.key === ' ' || e.key === 'Enter') && momentForm.value.tagInput.trim()) {
     e.preventDefault();
     addTagFromInput();
   }
-  if (e.key === 'Backspace' && !momentForm.value.tagInput && activeTags.value.length) activeTags.value = activeTags.value.slice(0, -1);
 }
 
 function removeTag(index) {
@@ -1329,7 +1356,7 @@ function handleRootClick(e) {
   if (mark) {
     e.preventDefault();
     if (pinnedDistortionMark === mark) closeDistortionTips();
-    else openDistortionTip(mark, { pinned: true });
+    else openDistortionTip(mark, { pinned: true, anchorPoint: { x: e.clientX, y: e.clientY } });
     return;
   }
   closeDistortionTips();
@@ -1533,7 +1560,9 @@ onBeforeUnmount(() => {
       @delete-moment="delMoment"
       @save-moment="saveMoment"
       @set-stage="setMoStage"
+      @handle-tag-input="tryCommitTagsFromInput"
       @handle-tag-key="handleTagKey"
+      @commit-tag-input="commitRemainingTagInput"
       @remove-tag="removeTag"
       @append-thought-preset="apBlock('mo-thought-blks', $event)"
       @append-connection-preset="apBlock('mo-conn-blks', $event)"

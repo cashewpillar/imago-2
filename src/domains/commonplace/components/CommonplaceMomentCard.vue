@@ -6,11 +6,17 @@ defineProps({
   },
 });
 
-defineEmits(['open', 'open-tag', 'jump']);
+const emit = defineEmits(['open', 'open-tag', 'jump']);
+
+function handleCardClick(event, item) {
+  const interactiveTarget = event.target.closest('.cdh-mark, .cdh-tip-link, a, button');
+  if (interactiveTarget) return;
+  emit('open', { id: item.id, mediaId: item.mediaId });
+}
 </script>
 
 <template>
-  <div :id="`mc-${item.id}`" class="mom-card" style="cursor:pointer" @click="$emit('open', { id: item.id, mediaId: item.mediaId })">
+  <div :id="`mc-${item.id}`" class="mom-card" style="cursor:pointer" @click="handleCardClick($event, item)">
     <div class="mom-card-head">
       <span class="mom-anchor">{{ item.anchor || '—' }}</span>
       <span class="mom-date">{{ item.dateLabel }}</span>
