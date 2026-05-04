@@ -711,7 +711,11 @@ function addBlk(cid, val = '', focus = false, afterEl = null) {
   if (afterEl) afterEl.after(div);
   else c.appendChild(div);
   if (val) bView(ta, view, c.dataset.baseTs ? Number(c.dataset.baseTs) : null);
-  else bEdit(ta, view);
+  else {
+    ta.classList.remove('off');
+    view.classList.remove('on');
+    ar(ta);
+  }
   if (focus) {
     ta.focus();
     ta.selectionStart = ta.selectionEnd = ta.value.length;

@@ -58,7 +58,6 @@ const menuItems = [
 ];
 
 const topbarMenuItems = [
-  { label: 'Open Afterlight', action: openAfterlight },
   { label: 'Import Table', action: handleImportTable },
   { label: 'Backup All Data', action: handleExportAll },
   { label: 'Restore All Data', action: handleImportAll },
@@ -176,10 +175,6 @@ function toggleTag({ groupKey, tag, type, nextValue }) {
 
 function openTable(table) {
   router.push({ name: 'table-records', params: { tableId: table.id } });
-}
-
-function openAfterlight() {
-  router.push({ name: 'afterlight-log' });
 }
 
 async function handleExportTable(table) {
