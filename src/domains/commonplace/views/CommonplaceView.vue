@@ -143,10 +143,7 @@ function fdtInput(ts) {
 }
 
 function fdtRef() {
-  const now = new Date();
-  const d = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  const t = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  return `${d}, ${t}: `;
+  return `${new Date().toISOString()}: `;
 }
 
 function ar(el) {
@@ -208,7 +205,11 @@ function getStrColor(s) {
   return `hsl(${Math.abs(h) % 360}, 55%, 38%)`;
 }
 
-function parseRefLabel(label, contextTs = null) {
+function parseRefLabel(label, contextTs = null, absoluteIso = null) {
+  if (absoluteIso) {
+    const parsedIso = new Date(absoluteIso);
+    if (!Number.isNaN(parsedIso.getTime())) return parsedIso;
+  }
   const match = String(label || '').trim().match(/^(\d{1,2}) ([A-Za-z]{3}), (\d{2}):(\d{2})$/);
   if (!match) return null;
   const [, dayStr, monthStr, hourStr, minuteStr] = match;
@@ -456,8 +457,16 @@ function parseMd(t, baseTs = null) {
   h = h.replace(/^---$/gm, '<hr>');
   h = h.replace(/^- (.*)$/gm, '• $1');
   let refAnchorTs = baseTs || null;
-  h = h.replace(/\((\d{1,2} [A-Za-z]{3}, \d{2}:\d{2}): (.*?)\)/g, (full, label, body) => {
-    const parsed = parseRefLabel(label, refAnchorTs);
+  h = h.replace(/\(([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z): (.*?)\)/g, (full, absoluteIso, body) => {
+    const parsed = parseRefLabel('', refAnchorTs, absoluteIso);
+    const label = parsed ? fdtFull(parsed.getTime()) : absoluteIso;
+    const rel = parsed && refAnchorTs ? formatRelativeLater(refAnchorTs, parsed.getTime()) : label;
+    if (parsed) refAnchorTs = parsed.getTime();
+    const title = parsed ? formatRefAbsolute(parsed.getTime()) : absoluteIso;
+    return `<span class="note ref"><span class="ref-ts" title="${esc(title)}">${esc(rel)}</span>${body}</span>`;
+  });
+  h = h.replace(/\((\d{1,2} [A-Za-z]{3}, \d{2}:\d{2})(?:\|([0-9TZ:.\-]+))?: (.*?)\)/g, (full, label, absoluteIso, body) => {
+    const parsed = parseRefLabel(label, refAnchorTs, absoluteIso || null);
     const rel = parsed && refAnchorTs ? formatRelativeLater(refAnchorTs, parsed.getTime()) : label;
     if (parsed) refAnchorTs = parsed.getTime();
     const title = parsed ? formatRefAbsolute(parsed.getTime()) : label;
