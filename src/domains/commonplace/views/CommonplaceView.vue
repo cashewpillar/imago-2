@@ -944,6 +944,13 @@ function blkKey(e, ta) {
     bEdit(pTa, prev.querySelector('.ta-view'));
   }
   if (e.key === '(') {
+    const cid = ta.parentElement.parentElement.id;
+    const isMoment = cid.startsWith('mo-');
+    if (isMoment) {
+      const isFirstEntry = ta.parentElement === ta.parentElement.parentElement.firstElementChild;
+      if (!edMomId || isFirstEntry) return;
+    }
+
     e.preventDefault();
     const ts = fdtRef();
     const start = ta.selectionStart;
