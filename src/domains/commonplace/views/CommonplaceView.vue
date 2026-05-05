@@ -894,7 +894,7 @@ function addBlk(cid, val = '', focus = false, afterEl = null) {
   ta.addEventListener('keydown', (event) => blkKey(event, ta));
   view.addEventListener('click', (event) => {
     if (event.target.closest('.cdh-mark, .cdh-tip-link, a, button, .task-item')) return;
-    bEdit(ta, view);
+    bEdit(ta, view, event);
   });
   remove.addEventListener('click', () => rmBlk(div));
   div.append(ta, view, remove);
@@ -932,12 +932,54 @@ function taInput(el) {
   }
 }
 
-function bEdit(ta, v) {
+function mapOffset(source, rendered, targetOffset) {
+  let s = 0;
+  let r = 0;
+  while (r < targetOffset && s < source.length) {
+    const sc = source[s];
+    const rc = rendered[r];
+    if (sc === rc) { s++; r++; }
+    else if (['*', '_', '`', '~'].includes(sc)) { s++; }
+    else if (sc === "'" && (rc === '\u2018' || rc === '\u2019')) { s++; r++; }
+    else if (sc === '"' && (rc === '\u201c' || rc === '\u201d')) { s++; r++; }
+    else if (sc === '-' && source[s + 1] === '-' && rc === '\u2014') { s += 2; r++; }
+    else if (sc === '-' && rc === '•') { s++; r++; }
+    else { s++; }
+  }
+  return s;
+}
+
+function bEdit(ta, v, event) {
+  let startOffset = ta.value.length;
+  let endOffset = ta.value.length;
+
+  if (event) {
+    const sel = window.getSelection();
+    if (sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (v.contains(range.startContainer)) {
+        const preStart = range.cloneRange();
+        preStart.selectNodeContents(v);
+        preStart.setEnd(range.startContainer, range.startOffset);
+        startOffset = mapOffset(ta.value, v.textContent, preStart.toString().length);
+
+        if (!range.collapsed && v.contains(range.endContainer)) {
+          const preEnd = range.cloneRange();
+          preEnd.selectNodeContents(v);
+          preEnd.setEnd(range.endContainer, range.endOffset);
+          endOffset = mapOffset(ta.value, v.textContent, preEnd.toString().length);
+        } else {
+          endOffset = startOffset;
+        }
+      }
+    }
+  }
+
   ta.classList.remove('off');
   v.classList.remove('on');
   ar(ta);
   ta.focus();
-  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  ta.setSelectionRange(startOffset, endOffset);
 }
 
 function bView(ta, v, baseTs = null) {
