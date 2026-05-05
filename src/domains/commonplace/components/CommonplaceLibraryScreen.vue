@@ -2,7 +2,6 @@
 import CommonplaceBottomNav from './CommonplaceBottomNav.vue';
 import CommonplaceEmptyState from './CommonplaceEmptyState.vue';
 import CommonplaceMediaCard from './CommonplaceMediaCard.vue';
-import CommonplaceTagChips from './CommonplaceTagChips.vue';
 import CommonplaceTopbar from './CommonplaceTopbar.vue';
 
 defineProps({
@@ -22,14 +21,6 @@ defineProps({
     type: String,
     default: 'all',
   },
-  activeTag: {
-    type: String,
-    default: null,
-  },
-  homeTags: {
-    type: Array,
-    required: true,
-  },
   homeSections: {
     type: Array,
     required: true,
@@ -44,7 +35,7 @@ defineProps({
   },
 });
 
-defineEmits(['toggle-search', 'update:searchValue', 'set-filter', 'toggle-tag', 'open-menu', 'open-media-editor', 'open-media', 'switch-tab']);
+defineEmits(['toggle-search', 'update:searchValue', 'set-filter', 'open-menu', 'open-media-editor', 'open-media', 'switch-tab']);
 </script>
 
 <template>
@@ -70,7 +61,6 @@ defineEmits(['toggle-search', 'update:searchValue', 'set-filter', 'toggle-tag', 
       <button class="chip" :class="{ on: currentFilter === 'tv' }" @click="$emit('set-filter', 'tv')">TV</button>
       <button class="chip" :class="{ on: currentFilter === 'other' }" @click="$emit('set-filter', 'other')">Other</button>
     </div>
-    <CommonplaceTagChips :items="homeTags" :active-key="activeTag" @toggle="$emit('toggle-tag', $event)" />
     <div v-if="!homeSections.length" class="list">
       <CommonplaceEmptyState icon="◌" :html="emptyStateHtml" />
     </div>

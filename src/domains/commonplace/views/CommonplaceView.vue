@@ -760,23 +760,49 @@ function renderMD(id) {
 }
 
 function renderTags() {
-  const tags = allTags();
-  if (!tags.length) {
+  renderTagRow();
+  let tags = allTags();
+  if (cTag) {
+    if (cTag === '_untagged') {
+      tags = [];
+    } else {
+      tags = tags.filter((t) => t === cTag);
+    }
+  }
+
+  if (!tags.length && cTag !== '_untagged') {
     tagGroups.value = [];
     return;
   }
-  tagGroups.value = tags.map((t) => {
+
+  const groups = tags.map((t) => {
     const moms = momsByTag(t);
     return {
       tag: t,
       count: moms.length,
       items: moms.map((mo) => {
-      const med = AM.find((x) => x.id === mo.mediaId);
-      const prev = mo.thought || mo.connection || mo.line || '';
-      return { id: mo.id, anchor: mo.anchor || '—', title: med ? med.title : '?', preview: prev ? `${prev.slice(0, 100)}${prev.length > 100 ? '…' : ''}` : '' };
-    }),
+        const med = AM.find((x) => x.id === mo.mediaId);
+        const prev = mo.thought || mo.connection || mo.line || '';
+        return { id: mo.id, anchor: mo.anchor || '—', title: med ? med.title : '?', preview: prev ? `${prev.slice(0, 100)}${prev.length > 100 ? '…' : ''}` : '' };
+      }),
     };
   });
+
+  if (cTag === '_untagged' || (!cTag && AMO.some((m) => !m.tags || !m.tags.length))) {
+    const untagged = AMO.filter((m) => !m.tags || !m.tags.length);
+    if (untagged.length) {
+      groups.push({
+        tag: 'Untagged',
+        count: untagged.length,
+        items: untagged.map((mo) => {
+          const med = AM.find((x) => x.id === mo.mediaId);
+          const prev = mo.thought || mo.connection || mo.line || '';
+          return { id: mo.id, anchor: mo.anchor || '—', title: med ? med.title : '?', preview: prev ? `${prev.slice(0, 100)}${prev.length > 100 ? '…' : ''}` : '' };
+        }),
+      });
+    }
+  }
+  tagGroups.value = groups;
 }
 
 function renderConns() {
@@ -833,7 +859,8 @@ function setFilter(filter) {
 
 function toggleTag(tag) {
   cTag = cTag === tag ? null : tag;
-  renderHome();
+  if (activeTab.value === 'home') renderHome();
+  if (activeTab.value === 'tags') renderTags();
 }
 
 function setMdTag(tag) {
@@ -1698,15 +1725,12 @@ onBeforeUnmount(() => {
       :search-open="searchOpen"
       :search-value="searchValue"
       :current-filter="cFilter"
-      :active-tag="cTag"
-      :home-tags="homeTags"
       :home-sections="homeSections"
       :empty-state-html="homeEmptyStateHtml"
       :active-tab="activeTab"
       @toggle-search="handleSearchToggle"
       @update:search-value="searchValue = $event; updateSearch()"
       @set-filter="setFilter"
-      @toggle-tag="toggleTag"
       @open-menu="openMenu"
       @open-media-editor="openMediaEditor()"
       @open-media="openMedia"
@@ -1716,11 +1740,14 @@ onBeforeUnmount(() => {
     <CommonplaceTagsScreen
       v-else-if="activeView === 'tags'"
       :brand-html="brandHtml"
+      :home-tags="homeTags"
+      :active-tag="cTag"
       :tag-groups="tagGroups"
       :empty-state-html="tagsEmptyStateHtml"
       :active-tab="activeTab"
       @open-menu="openMenu"
       @open-moment="jumpTo"
+      @toggle-tag="toggleTag"
       @switch-tab="switchTab"
     />
 
