@@ -464,30 +464,50 @@ function applyDistortionHighlights(root) {
   });
 }
 
-function parseMd(t, baseTs = null) {
-  let h = esc(smart(t));
+function parseMd(t, baseTs = null, meta = null) {
+  let refAnchorTs = baseTs || null;
+  const taskAttr = meta ? `data-id="${meta.id}" data-type="${meta.type}" data-field="${meta.field}"` : '';
+
+  const lines = t.split('\n');
+  const hLines = lines.map((line, idx) => {
+    let hl;
+    const taskMatch = line.match(/^- \[([ x])\] (.*)$/);
+    if (taskMatch) {
+      const checked = taskMatch[1] === 'x';
+      const content = esc(smart(taskMatch[2]));
+      hl = `<span class="task-item" ${taskAttr} data-line="${idx}" data-state="${checked ? 'checked' : 'unchecked'}"><input type="checkbox" class="task-checkbox" ${checked ? 'checked' : ''} readonly> <span>${content}</span></span>`;
+    } else {
+      hl = esc(smart(line));
+      hl = hl.replace(/^- (.*)$/, '• $1');
+    }
+
+    // Ref parsing
+    hl = hl.replace(/\(([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z): (.*?)\)/g, (full, absoluteIso, body) => {
+      const parsed = parseRefLabel('', refAnchorTs, absoluteIso);
+      const label = parsed ? fdtFull(parsed.getTime()) : absoluteIso;
+      const rel = parsed && refAnchorTs ? formatRelativeLater(refAnchorTs, parsed.getTime()) : label;
+      if (parsed) refAnchorTs = parsed.getTime();
+      const title = parsed ? formatRefAbsolute(parsed.getTime()) : absoluteIso;
+      return `<span class="note ref"><span class="ref-ts" title="${esc(title)}">${esc(rel)}</span>${body}</span>`;
+    });
+    hl = hl.replace(/\((\d{1,2} [A-Za-z]{3}, \d{2}:\d{2})(?:\|([0-9TZ:.\-]+))?: (.*?)\)/g, (full, label, absoluteIso, body) => {
+      const parsed = parseRefLabel(label, refAnchorTs, absoluteIso || null);
+      const rel = parsed && refAnchorTs ? formatRelativeLater(refAnchorTs, parsed.getTime()) : label;
+      if (parsed) refAnchorTs = parsed.getTime();
+      const title = parsed ? formatRefAbsolute(parsed.getTime()) : label;
+      return `<span class="note ref"><span class="ref-ts" title="${esc(title)}">${esc(rel)}</span>${body}</span>`;
+    });
+
+    return hl;
+  });
+
+  let h = hLines.join('\n');
   h = h.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
   h = h.replace(/__(.*?)__/g, '<u>$1</u>');
   h = h.replace(/\*(.*?)\*/g, '<i>$1</i>');
   h = h.replace(/^---$/gm, '<hr>');
-  h = h.replace(/^- (.*)$/gm, '• $1');
-  let refAnchorTs = baseTs || null;
-  h = h.replace(/\(([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z): (.*?)\)/g, (full, absoluteIso, body) => {
-    const parsed = parseRefLabel('', refAnchorTs, absoluteIso);
-    const label = parsed ? fdtFull(parsed.getTime()) : absoluteIso;
-    const rel = parsed && refAnchorTs ? formatRelativeLater(refAnchorTs, parsed.getTime()) : label;
-    if (parsed) refAnchorTs = parsed.getTime();
-    const title = parsed ? formatRefAbsolute(parsed.getTime()) : absoluteIso;
-    return `<span class="note ref"><span class="ref-ts" title="${esc(title)}">${esc(rel)}</span>${body}</span>`;
-  });
-  h = h.replace(/\((\d{1,2} [A-Za-z]{3}, \d{2}:\d{2})(?:\|([0-9TZ:.\-]+))?: (.*?)\)/g, (full, label, absoluteIso, body) => {
-    const parsed = parseRefLabel(label, refAnchorTs, absoluteIso || null);
-    const rel = parsed && refAnchorTs ? formatRelativeLater(refAnchorTs, parsed.getTime()) : label;
-    if (parsed) refAnchorTs = parsed.getTime();
-    const title = parsed ? formatRefAbsolute(parsed.getTime()) : label;
-    return `<span class="note ref"><span class="ref-ts" title="${esc(title)}">${esc(rel)}</span>${body}</span>`;
-  });
   h = h.replace(/\((.*?)\)/g, '<span class="note">$1</span>');
+
   const container = document.createElement('div');
   container.innerHTML = h.replace(/\n/g, '<br>');
   applyDistortionHighlights(container);
@@ -689,9 +709,9 @@ function renderMomCard(mo) {
     mediaId: mo.mediaId,
     anchor: mo.anchor || '—',
     dateLabel: fdt(mo.createdAt),
-    thoughtHtml: mo.thought ? parseMd(mo.thought, mo.createdAt) : '',
-    connectionHtml: mo.connection ? parseMd(mo.connection, mo.createdAt) : '',
-    lineHtml: mo.line ? parseMd(mo.line, mo.createdAt) : '',
+    thoughtHtml: mo.thought ? parseMd(mo.thought, mo.createdAt, { id: mo.id, type: 'moment', field: 'thought' }) : '',
+    connectionHtml: mo.connection ? parseMd(mo.connection, mo.createdAt, { id: mo.id, type: 'moment', field: 'connection' }) : '',
+    lineHtml: mo.line ? parseMd(mo.line, mo.createdAt, { id: mo.id, type: 'moment', field: 'line' }) : '',
     tags,
     relations: rels.map((r) => relChip(r, mo.id)),
   };
@@ -730,7 +750,7 @@ function renderMD(id) {
     creator: m.creator || '',
     startedAtLabel: m.startedAt ? fdt(m.startedAt) : '',
     finishedAtLabel: m.finishedAt ? fdt(m.finishedAt) : '',
-    reasonHtml: m.reason ? parseMd(m.reason, m.createdAt) : '',
+    reasonHtml: m.reason ? parseMd(m.reason, m.createdAt, { id: m.id, type: 'media', field: 'reason' }) : '',
     tags,
     activeTag: mdTag,
     countSuffix: mdTag ? `(${moms.length})` : '',
@@ -873,7 +893,7 @@ function addBlk(cid, val = '', focus = false, afterEl = null) {
   ta.addEventListener('blur', () => bView(ta, view, c.dataset.baseTs ? Number(c.dataset.baseTs) : null));
   ta.addEventListener('keydown', (event) => blkKey(event, ta));
   view.addEventListener('click', (event) => {
-    if (event.target.closest('.cdh-mark, .cdh-tip-link, a, button')) return;
+    if (event.target.closest('.cdh-mark, .cdh-tip-link, a, button, .task-item')) return;
     bEdit(ta, view);
   });
   remove.addEventListener('click', () => rmBlk(div));
@@ -1452,7 +1472,51 @@ async function normalizeLegacyRefs() {
   );
 }
 
+async function toggleTask(id, type, field, lineIdx) {
+  const table = type === 'moment' ? db.moments : db.media;
+  const item = await table.get(Number(id));
+  if (item && item[field]) {
+    const lines = item[field].split('\n');
+    if (lines[lineIdx]) {
+      const line = lines[lineIdx];
+      if (line.startsWith('- [ ] ')) {
+        lines[lineIdx] = `- [x] ${line.slice(6)}`;
+      } else if (line.startsWith('- [x] ')) {
+        lines[lineIdx] = `- [ ] ${line.slice(6)}`;
+      }
+      const newText = lines.join('\n');
+      if (newText !== item[field]) {
+        await table.update(Number(id), { [field]: newText, updatedAt: Date.now() });
+        await loadAll();
+      }
+    }
+  }
+}
+
 function handleRootClick(e) {
+  const taskItem = e.target.closest('.task-item');
+  if (taskItem) {
+    const editorView = e.target.closest('.ta-view');
+    if (editorView) {
+      const ta = editorView.parentElement.querySelector('textarea');
+      const lineIdx = parseInt(taskItem.dataset.line, 10);
+      if (ta && lineIdx !== undefined) {
+        const lines = ta.value.split('\n');
+        const line = lines[lineIdx];
+        if (line.startsWith('- [ ] ')) lines[lineIdx] = `- [x] ${line.slice(6)}`;
+        else if (line.startsWith('- [x] ')) lines[lineIdx] = `- [ ] ${line.slice(6)}`;
+        ta.value = lines.join('\n');
+        bView(ta, editorView, editorView.parentElement.parentElement.dataset.baseTs ? Number(editorView.parentElement.parentElement.dataset.baseTs) : null);
+        return;
+      }
+    }
+
+    const { id, type, field, line } = taskItem.dataset;
+    if (id && type && field && line !== undefined) {
+      toggleTask(id, type, field, parseInt(line, 10));
+      return;
+    }
+  }
   const learnMore = e.target.closest('.cdh-tip-link');
   if (learnMore) {
     e.preventDefault();

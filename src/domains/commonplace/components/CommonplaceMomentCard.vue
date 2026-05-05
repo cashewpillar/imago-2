@@ -9,7 +9,7 @@ defineProps({
 const emit = defineEmits(['open', 'open-tag', 'jump']);
 
 function handleCardClick(event, item) {
-  const interactiveTarget = event.target.closest('.cdh-mark, .cdh-tip-link, a, button');
+  const interactiveTarget = event.target.closest('.cdh-mark, .cdh-tip-link, a, button, .task-item');
   if (interactiveTarget) return;
   emit('open', { id: item.id, mediaId: item.mediaId });
 }
