@@ -12,8 +12,8 @@ defineEmits(['open']);
 <template>
   <div class="ci" @click="$emit('open', item.id)">
     <div class="ci-top">
-      <span class="ci-anch">{{ item.anchor || '—' }}</span>
       <span class="ci-title">{{ item.title }}</span>
+      <span v-if="item.anchor" class="ci-anch">· {{ item.anchor }}</span>
     </div>
     <div v-if="item.preview" class="ci-preview">"{{ item.preview }}"</div>
     <div v-if="item.toText" class="ci-to">
