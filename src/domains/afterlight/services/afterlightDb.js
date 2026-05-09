@@ -84,6 +84,13 @@ function uniqueList(values = []) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function generateUid() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `f-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 function normalizeTextList(value) {
   if (Array.isArray(value)) return uniqueList(value.map(cleanText));
   const text = cleanText(value);
@@ -175,16 +182,20 @@ async function ensureMetaDefaults() {
 }
 
 async function migrateLegacyEntries(vaultId) {
-  const entries = await listEntries(vaultId);
-  const missing = entries.filter((e) => !e.data.uid);
+  try {
+    const entries = await listEntries(vaultId);
+    const missing = entries.filter((e) => !e?.data?.uid);
 
-  if (missing.length) {
-    for (const entry of missing) {
-      await updateEntry(entry.id, {
-        ...entry.data,
-        uid: `legacy-${entry.createdAt}`,
-      });
+    if (missing.length) {
+      for (const entry of missing) {
+        await updateEntry(entry.id, {
+          ...(entry.data || {}),
+          uid: `legacy-${entry.createdAt}`,
+        });
+      }
     }
+  } catch (err) {
+    console.error('Migration failed:', err);
   }
 }
 
@@ -240,7 +251,7 @@ export async function createAfterlightEntry(formData) {
   const createdAt = Date.now();
   const loggedAtUtc = new Date(createdAt).toISOString();
   const nextData = {
-    uid: crypto.randomUUID(),
+    uid: generateUid(),
     title: formatTitle(formData),
     loggedAtUtc,
     action: Array.isArray(formData.action) ? formData.action.filter(Boolean) : [],
