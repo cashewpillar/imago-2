@@ -152,7 +152,7 @@ function buildLegacyImportRow(entry, fallbackTimestamp) {
 
 function normalizeEntry(entry) {
   const data = entry?.data || {};
-  const uid = data.uid || `legacy-${entry.createdAt}`;
+  const uid = entry.uid || data.uid || `legacy-${entry.createdAt}`;
 
   return {
     ...entry,
@@ -181,24 +181,6 @@ async function ensureMetaDefaults() {
   }
 }
 
-async function migrateLegacyEntries(vaultId) {
-  try {
-    const entries = await listEntries(vaultId);
-    const missing = entries.filter((e) => !e?.data?.uid);
-
-    if (missing.length) {
-      for (const entry of missing) {
-        await updateEntry(entry.id, {
-          ...(entry.data || {}),
-          uid: `legacy-${entry.createdAt}`,
-        });
-      }
-    }
-  } catch (err) {
-    console.error('Migration failed:', err);
-  }
-}
-
 export async function ensureAfterlightVault() {
   await ensureMetaDefaults();
 
@@ -215,9 +197,6 @@ export async function ensureAfterlightVault() {
     await setAppMeta(AFTERLIGHT_VAULT_META_KEY, id);
     vault = await getVault(id);
   }
-
-  // Revitalize existing records with permanent UIDs
-  await migrateLegacyEntries(vault.id);
 
   const nextFields = reconcileFields(vault.fields);
   if (stableStringify(nextFields) !== stableStringify(vault.fields || [])) {
@@ -307,7 +286,7 @@ export function prepareAfterlightLegacyImport(payload) {
 export async function importAfterlightLegacyEntries(plan, stateUpdates = {}) {
   const vault = await ensureAfterlightVault();
   const existingEntries = await listEntries(vault.id);
-  const existingUids = new Set(existingEntries.map((e) => e.data.uid));
+  const existingUids = new Set(existingEntries.map((e) => e.uid || e.data.uid));
 
   const stateMap = new Map(
     Object.entries(stateUpdates || {}).map(([source, target]) => [cleanText(source), cleanText(target) || cleanText(source)]),
@@ -323,6 +302,7 @@ export async function importAfterlightLegacyEntries(plan, stateUpdates = {}) {
       const uid = `legacy-${entry.createdAt}`;
       return {
         createdAt: entry.createdAt,
+        uid,
         data: {
           ...entry.data,
           uid,
@@ -399,20 +379,24 @@ export async function importAfterlightData(payload) {
 
   const vault = await ensureAfterlightVault();
   const existingEntries = await listEntries(vault.id);
-  const existingUids = new Set(existingEntries.map((e) => e.data.uid).filter(Boolean));
+  const existingUids = new Set(existingEntries.map((e) => e.uid || e.data.uid).filter(Boolean));
 
   const entries = (payload.entries || [])
     .filter((entry) => {
-      const uid = entry.data.uid || `legacy-${entry.createdAt}`;
+      const uid = entry.uid || entry.data.uid || `legacy-${entry.createdAt}`;
       return !existingUids.has(uid);
     })
-    .map((entry) => ({
-      createdAt: entry.createdAt,
-      data: {
-        ...entry.data,
-        uid: entry.data.uid || `legacy-${entry.createdAt}`,
-      },
-    }));
+    .map((entry) => {
+      const uid = entry.uid || entry.data.uid || `legacy-${entry.createdAt}`;
+      return {
+        createdAt: entry.createdAt,
+        uid,
+        data: {
+          ...entry.data,
+          uid,
+        },
+      };
+    });
 
   if (!entries.length) {
     return {

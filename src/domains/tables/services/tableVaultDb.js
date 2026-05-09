@@ -60,6 +60,22 @@ db.version(4)
     });
   });
 
+db.version(5)
+  .stores({
+    vaults: '++id,name,sourceTrackerId',
+    entries: '++id,tableId,createdAt,sourceRowUid,sourceTrackerId,uid',
+    appmeta: '&key',
+  })
+  .upgrade(async (tx) => {
+    await tx.table('entries').toCollection().modify((entry) => {
+      if (entry.data && entry.data.uid) {
+        entry.uid = entry.data.uid;
+      } else if (entry.createdAt) {
+        entry.uid = `legacy-${entry.createdAt}`;
+      }
+    });
+  });
+
 function toPlainData(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -133,30 +149,40 @@ export async function getEntry(entryId) {
 }
 
 export async function createEntry(vaultId, data) {
+  const { uid, ...rest } = data || {};
   return db.entries.add({
     tableId: Number(vaultId),
-    data: toPlainData(data),
+    uid: uid || null,
+    data: toPlainData(rest),
     createdAt: Date.now(),
   });
 }
 
 export async function createEntries(vaultId, items) {
-  const rows = (items || []).map((item) => ({
-    tableId: Number(vaultId),
-    data: toPlainData(item.data || {}),
-    createdAt: item.createdAt || Date.now(),
-  }));
+  const rows = (items || []).map((item) => {
+    const { uid, ...rest } = item.data || {};
+    return {
+      tableId: Number(vaultId),
+      uid: uid || item.uid || null,
+      data: toPlainData(rest),
+      createdAt: item.createdAt || Date.now(),
+    };
+  });
   if (!rows.length) return 0;
   await db.entries.bulkAdd(rows);
   return rows.length;
 }
 
 export async function importEntriesIntoVault(vaultId, fields, items) {
-  const rows = (items || []).map((item) => ({
-    tableId: Number(vaultId),
-    data: toPlainData(item.data || {}),
-    createdAt: item.createdAt || Date.now(),
-  }));
+  const rows = (items || []).map((item) => {
+    const { uid, ...rest } = item.data || {};
+    return {
+      tableId: Number(vaultId),
+      uid: uid || item.uid || null,
+      data: toPlainData(rest),
+      createdAt: item.createdAt || Date.now(),
+    };
+  });
 
   await db.transaction('rw', db.vaults, db.entries, async () => {
     await db.vaults.update(Number(vaultId), { fields: toPlainData(fields || []) });
@@ -167,7 +193,10 @@ export async function importEntriesIntoVault(vaultId, fields, items) {
 }
 
 export async function updateEntry(entryId, data) {
-  await db.entries.update(Number(entryId), { data: toPlainData(data) });
+  const { uid, ...rest } = data || {};
+  const update = { data: toPlainData(rest) };
+  if (uid) update.uid = uid;
+  await db.entries.update(Number(entryId), update);
 }
 
 export async function deleteEntry(entryId) {
