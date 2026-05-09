@@ -326,7 +326,18 @@ export async function importAfterlightLegacyEntries(plan, stateUpdates = {}) {
 
 export async function exportAfterlightData() {
   const vault = await ensureAfterlightVault();
-  const entries = (await listEntries(vault.id)).map(normalizeEntry);
+  const rawEntries = await listEntries(vault.id);
+
+  const entries = rawEntries.map((entry) => {
+    const data = entry.data || {};
+    return {
+      createdAt: entry.createdAt,
+      data: {
+        ...data,
+        uid: data.uid || `legacy-${entry.createdAt}`,
+      },
+    };
+  });
 
   const payload = {
     type: 'imago-afterlight-export',
