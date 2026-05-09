@@ -147,6 +147,7 @@ function normalizeEntry(entry) {
   const data = entry?.data || {};
   return {
     ...entry,
+    uid: data.uid || '',
     loggedAtUtc: data.loggedAtUtc || (entry?.createdAt ? new Date(entry.createdAt).toISOString() : ''),
     title: data.title || '',
     action: Array.isArray(data.action) ? data.action : [],
