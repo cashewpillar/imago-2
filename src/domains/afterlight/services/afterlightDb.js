@@ -270,24 +270,24 @@ export function prepareAfterlightLegacyImport(payload) {
     exportedAt: exportedAtText,
     totalEntries: Number.isFinite(Number(payload.totalEntries)) ? Number(payload.totalEntries) : payload.entries.length,
     entries: rows,
-    actionValues: uniqueList(rows.flatMap((entry) => entry.data.action)).sort((a, b) => a.localeCompare(b)),
+    stateValues: uniqueList(rows.flatMap((entry) => entry.data.state)).sort((a, b) => a.localeCompare(b)),
   };
 }
 
-export async function importAfterlightLegacyEntries(plan, actionUpdates = {}) {
+export async function importAfterlightLegacyEntries(plan, stateUpdates = {}) {
   const vault = await ensureAfterlightVault();
-  const actionMap = new Map(
-    Object.entries(actionUpdates || {}).map(([source, target]) => [cleanText(source), cleanText(target) || cleanText(source)]),
+  const stateMap = new Map(
+    Object.entries(stateUpdates || {}).map(([source, target]) => [cleanText(source), cleanText(target) || cleanText(source)]),
   );
 
   const importedEntries = (plan?.entries || []).map((entry) => {
-    const action = uniqueList(entry.data.action.map((value) => actionMap.get(cleanText(value)) || cleanText(value)));
+    const state = uniqueList(entry.data.state.map((value) => stateMap.get(cleanText(value)) || cleanText(value)));
     return {
       createdAt: entry.createdAt,
       data: {
         ...entry.data,
-        action,
-        title: formatTitle({ action, state: entry.data.state }),
+        state,
+        title: formatTitle({ action: entry.data.action, state }),
       },
     };
   });

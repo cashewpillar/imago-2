@@ -17,12 +17,12 @@ const importing = ref(false);
 const menuOpen = ref(false);
 const plan = ref(null);
 const errorMessage = ref('');
-const actionUpdates = ref({});
+const stateUpdates = ref({});
 
-const mappedActions = computed(() =>
-  (plan.value?.actionValues || []).map((value) => ({
+const mappedStates = computed(() =>
+  (plan.value?.stateValues || []).map((value) => ({
     source: value,
-    target: actionUpdates.value[value] ?? value,
+    target: stateUpdates.value[value] ?? value,
   })),
 );
 
@@ -31,7 +31,7 @@ function resetState() {
   importing.value = false;
   plan.value = null;
   errorMessage.value = '';
-  actionUpdates.value = {};
+  stateUpdates.value = {};
   menuOpen.value = false;
 }
 
@@ -59,7 +59,7 @@ async function handleFileChange(event) {
     const payload = JSON.parse(await file.text());
     const nextPlan = prepareAfterlightLegacyImport(payload);
     plan.value = nextPlan;
-    actionUpdates.value = Object.fromEntries((nextPlan.actionValues || []).map((value) => [value, value]));
+    stateUpdates.value = Object.fromEntries((nextPlan.stateValues || []).map((value) => [value, value]));
     errorMessage.value = '';
     open.value = true;
   } catch (error) {
@@ -74,7 +74,7 @@ async function submitImport() {
   importing.value = true;
 
   try {
-    const result = await importAfterlightLegacyEntries(plan.value, actionUpdates.value);
+    const result = await importAfterlightLegacyEntries(plan.value, stateUpdates.value);
     showToast(`Imported ${result.imported} Afterlight entr${result.imported === 1 ? 'y' : 'ies'}`, 'success');
     resetState();
     emit('imported', result.workspace);
@@ -136,17 +136,17 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div v-if="mappedActions.length" class="al-import-mapping-list">
-          <div class="al-section-label">update action labels on import</div>
+        <div v-if="mappedStates.length" class="al-import-mapping-list">
+          <div class="al-section-label">update internal state labels on import</div>
           <div
-            v-for="item in mappedActions"
+            v-for="item in mappedStates"
             :key="item.source"
             class="al-import-mapping-row"
           >
             <div class="al-import-source">{{ item.source }}</div>
             <div class="al-import-arrow">→</div>
             <input
-              v-model="actionUpdates[item.source]"
+              v-model="stateUpdates[item.source]"
               class="al-field al-import-input"
               type="text"
               :placeholder="item.source"
