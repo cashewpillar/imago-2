@@ -779,9 +779,11 @@ function renderHome() {
 function renderMomCard(mo) {
   const rels = AR.filter((r) => r.fromId === mo.id || r.toId === mo.id);
   const tags = mo.tags || [];
+  const med = AM.find((m) => m.id === mo.mediaId);
   return {
     id: mo.id,
     mediaId: mo.mediaId,
+    mediaTitle: med ? med.title : '',
     anchor: mo.anchor || '—',
     dateLabel: fdt(mo.createdAt),
     thoughtHtml: mo.thought ? parseMd(mo.thought, mo.createdAt, { id: mo.id, type: 'moment', field: 'thought' }) : '',
@@ -855,11 +857,7 @@ function renderTags() {
     return {
       tag: t,
       count: moms.length,
-      items: moms.map((mo) => {
-        const med = AM.find((x) => x.id === mo.mediaId);
-        const prev = mo.thought || mo.connection || mo.line || '';
-        return { id: mo.id, anchor: mo.anchor || '—', title: med ? med.title : '?', preview: prev ? `${prev.slice(0, 100)}${prev.length > 100 ? '…' : ''}` : '' };
-      }),
+      items: moms.map((mo) => renderMomCard(mo)),
     };
   });
 
@@ -869,11 +867,7 @@ function renderTags() {
       groups.push({
         tag: 'Untagged',
         count: untagged.length,
-        items: untagged.map((mo) => {
-          const med = AM.find((x) => x.id === mo.mediaId);
-          const prev = mo.thought || mo.connection || mo.line || '';
-          return { id: mo.id, anchor: mo.anchor || '—', title: med ? med.title : '?', preview: prev ? `${prev.slice(0, 100)}${prev.length > 100 ? '…' : ''}` : '' };
-        }),
+        items: untagged.map((mo) => renderMomCard(mo)),
       });
     }
   }
@@ -962,7 +956,6 @@ function back() {
   if (prev === 'tags') activeTab.value = 'tags';
   if (prev === 'connections') activeTab.value = 'connections';
   if (prev === 'mdetail' && cMediaId) renderMD(cMediaId);
-  scrollToTop();
 }
 
 function renderBlks(cid, text, baseTs = null) {
@@ -1859,7 +1852,9 @@ onBeforeUnmount(() => {
       :empty-state-html="tagsEmptyStateHtml"
       :active-tab="activeTab"
       @open-menu="openMenu"
-      @open-moment="jumpTo"
+      @open-moment="openMomentEditor($event.id, $event.mediaId)"
+      @open-tag="openMomentFromTag"
+      @jump="jumpTo"
       @toggle-tag="toggleTag"
       @switch-tab="switchTab"
     />

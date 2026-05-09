@@ -1,7 +1,7 @@
 <script setup>
 import CommonplaceBottomNav from './CommonplaceBottomNav.vue';
 import CommonplaceEmptyState from './CommonplaceEmptyState.vue';
-import CommonplaceJumpCard from './CommonplaceJumpCard.vue';
+import CommonplaceMomentCard from './CommonplaceMomentCard.vue';
 import CommonplaceTagChips from './CommonplaceTagChips.vue';
 import CommonplaceTopbar from './CommonplaceTopbar.vue';
 
@@ -32,7 +32,7 @@ defineProps({
   },
 });
 
-defineEmits(['open-menu', 'switch-tab', 'open-moment', 'toggle-tag']);
+defineEmits(['open-menu', 'switch-tab', 'open-moment', 'toggle-tag', 'open-tag', 'jump']);
 </script>
 
 <template>
@@ -48,11 +48,13 @@ defineEmits(['open-menu', 'switch-tab', 'open-moment', 'toggle-tag']);
     <div v-else class="list">
       <div v-for="group in tagGroups" :key="group.tag" class="cg">
         <div class="cg-lbl">{{ group.tag === 'Untagged' ? '' : '#' }}{{ group.tag }} · {{ group.count }} {{ group.count === 1 ? 'moment' : 'moments' }}</div>
-        <CommonplaceJumpCard
+        <CommonplaceMomentCard
           v-for="item in group.items"
           :key="item.id"
           :item="item"
           @open="$emit('open-moment', $event)"
+          @open-tag="$emit('open-tag', $event)"
+          @jump="$emit('jump', $event)"
         />
       </div>
     </div>

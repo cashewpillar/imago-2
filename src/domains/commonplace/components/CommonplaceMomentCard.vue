@@ -18,7 +18,13 @@ function handleCardClick(event, item) {
 <template>
   <div :id="`mc-${item.id}`" class="mom-card" style="cursor:pointer" @click="handleCardClick($event, item)">
     <div class="mom-card-head">
-      <span class="mom-anchor">{{ item.anchor || '—' }}</span>
+      <span class="mom-anchor">
+        <template v-if="item.mediaTitle">
+          <b>{{ item.mediaTitle }}</b>
+          <span v-if="item.anchor && item.anchor !== '—'" style="opacity:.5;margin:0 6px;">|</span>
+        </template>
+        <span v-if="item.anchor && item.anchor !== '—'">{{ item.anchor }}</span>
+      </span>
       <span class="mom-date">{{ item.dateLabel }}</span>
     </div>
     <div class="mom-body">
