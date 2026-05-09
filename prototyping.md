@@ -3,6 +3,7 @@
 - use Dexie.js
 - use Vue3
 ##### Requirements
+- have uuid for records
 - have import (idempotent/deduplicate and can resolve to latest if conflicting values)
 - have reset import (overwrite db with the import)
 - have export

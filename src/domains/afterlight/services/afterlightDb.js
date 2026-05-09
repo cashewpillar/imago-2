@@ -145,9 +145,11 @@ function buildLegacyImportRow(entry, fallbackTimestamp) {
 
 function normalizeEntry(entry) {
   const data = entry?.data || {};
+  const uid = data.uid || `legacy-${entry.createdAt}`;
+
   return {
     ...entry,
-    uid: data.uid || '',
+    uid,
     loggedAtUtc: data.loggedAtUtc || (entry?.createdAt ? new Date(entry.createdAt).toISOString() : ''),
     title: data.title || '',
     action: Array.isArray(data.action) ? data.action : [],
@@ -157,7 +159,10 @@ function normalizeEntry(entry) {
     daytype: data.daytype || '',
     minutes: data.minutes === '' || data.minutes === undefined || data.minutes === null ? null : Number(data.minutes),
     notes: data.notes || '',
-    data,
+    data: {
+      ...data,
+      uid,
+    },
   };
 }
 
@@ -321,7 +326,7 @@ export async function importAfterlightLegacyEntries(plan, stateUpdates = {}) {
 
 export async function exportAfterlightData() {
   const vault = await ensureAfterlightVault();
-  const entries = await listEntries(vault.id);
+  const entries = (await listEntries(vault.id)).map(normalizeEntry);
 
   const payload = {
     type: 'imago-afterlight-export',
