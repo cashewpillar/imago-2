@@ -344,6 +344,7 @@ watch(
   <div class="screen active">
     <AppTopbar
       show-logo
+      show-home
       :search-open="topSearchOpen"
       :search-value="homeSearch"
       :menu-items="topbarMenuItems"

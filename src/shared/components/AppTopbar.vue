@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import SearchField from './SearchField.vue';
 import ContextMenu from './ContextMenu.vue';
 
@@ -13,6 +14,10 @@ defineProps({
     default: false,
   },
   showBack: {
+    type: Boolean,
+    default: false,
+  },
+  showHome: {
     type: Boolean,
     default: false,
   },
@@ -54,6 +59,12 @@ const handleSelect = (item) => {
 
 <template>
   <div class="topbar">
+    <RouterLink v-if="showHome" to="/" class="home-btn" title="Back to Home">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </RouterLink>
+
     <button v-if="showBack" class="back-btn" @click="$emit('back')">
       <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
         <path d="M6 1L1 6l5 5M1 6h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />

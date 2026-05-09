@@ -32,6 +32,20 @@
   padding-top: 4px;
 }
 
+.al-home-link {
+  display: inline-block;
+  text-decoration: none;
+  color: #7a7570;
+  font-size: 18px;
+  margin-bottom: 12px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.al-home-link:hover {
+  color: #c8a96e;
+}
+
 .al-label {
   font-size: 10px;
   letter-spacing: 0.2em;

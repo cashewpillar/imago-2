@@ -25,7 +25,7 @@ defineEmits(['back', 'delete-media', 'save-media', 'copy-blocks']);
 
 <template>
   <section class="view active">
-    <CommonplaceTopbar back :label="title" :meta="meta" @back="$emit('back')" />
+    <CommonplaceTopbar back home :label="title" :meta="meta" @back="$emit('back')" />
     <div class="me-body">
       <div class="fg"><label class="fl">Type</label><select v-model="mediaForm.type" class="fi"><option value="book">Book</option><option value="film">Film</option><option value="tv">TV series</option><option value="other">Other</option></select></div>
       <div class="fg"><label class="fl">Status</label><select v-model="mediaForm.status" class="fi"><option value="not-started">Not started</option><option value="in-progress">In Progress</option><option value="on-hold">On hold</option><option value="done">Done</option></select></div>

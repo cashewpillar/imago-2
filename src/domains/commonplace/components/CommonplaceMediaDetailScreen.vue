@@ -18,7 +18,7 @@ defineEmits(['back', 'edit-media', 'toggle-tag', 'add-moment', 'open-moment', 'o
 
 <template>
   <section class="view active">
-    <CommonplaceTopbar back :label="mediaDetailLabel" @back="$emit('back')">
+    <CommonplaceTopbar back home :label="mediaDetailLabel" @back="$emit('back')">
       <button class="btn ib" @click="$emit('edit-media')">✎</button>
     </CommonplaceTopbar>
     <CommonplaceMediaDetailBody

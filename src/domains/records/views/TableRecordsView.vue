@@ -504,6 +504,7 @@ function closeFab() {
   <div class="screen active">
     <AppTopbar
       show-back
+      show-home
       :title="`${vault?.icon || ''} ${vault?.name || '—'}`"
       :search-open="topSearchOpen"
       :search-value="recordSearch"

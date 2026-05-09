@@ -46,6 +46,8 @@ button, input, select, textarea { font: inherit; }
 .screen { display: flex; flex-direction: column; min-height: 100vh; }
 .topbar { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0 14px; height: 52px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .logo { font-family: var(--font-h); font-size: 17px; font-weight: 800; letter-spacing: -0.5px; color: var(--primary); }
+.home-btn { width: 32px; height: 32px; border-radius: var(--r-sm); border: 1px solid var(--border2); background: var(--bg3); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all .15s; text-decoration: none; }
+.home-btn:hover { color: var(--text); background: var(--bg4); }
 .back-btn { width: 32px; height: 32px; border-radius: var(--r-sm); border: 1px solid var(--border2); background: var(--bg3); color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all .15s; }
 .back-btn:hover { color: var(--text); background: var(--bg4); }
 .topbar-title { font-family: var(--font-h); font-size: 15px; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

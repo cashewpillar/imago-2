@@ -19,6 +19,7 @@ defineProps({
       <header class="al-header">
         <div class="al-header-top">
           <div>
+            <RouterLink to="/" class="al-home-link">⌂</RouterLink>
             <div class="al-label">exploited</div>
             <div class="al-title">{{ title }}</div>
             <div class="al-meta">{{ meta }}</div>

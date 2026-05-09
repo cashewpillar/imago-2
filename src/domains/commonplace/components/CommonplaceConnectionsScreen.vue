@@ -28,7 +28,7 @@ defineEmits(['open-menu', 'switch-tab', 'open-moment']);
 
 <template>
   <section class="view active">
-    <CommonplaceTopbar :brand-html="brandHtml">
+    <CommonplaceTopbar :brand-html="brandHtml" home>
       <button class="btn ib" @click="$emit('open-menu')">⋯</button>
     </CommonplaceTopbar>
     <div class="pg-head"><div class="pg-h">Your <em>connections</em></div></div>

@@ -53,7 +53,7 @@ defineEmits([
 
 <template>
   <section class="view active">
-    <CommonplaceTopbar back :label="title" :meta="meta" @back="$emit('back')" />
+    <CommonplaceTopbar back home :label="title" :meta="meta" @back="$emit('back')" />
     <div class="me-body">
       <div>
         <div class="fg"><label class="fl"><span>Thoughts</span><button class="fl-copy" @click="$emit('copy-blocks', 'mo-thought-blks')">Copy</button></label><div id="mo-thought-blks"></div></div>

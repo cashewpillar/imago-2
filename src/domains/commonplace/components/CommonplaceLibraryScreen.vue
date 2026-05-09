@@ -40,7 +40,7 @@ defineEmits(['toggle-search', 'update:searchValue', 'set-filter', 'open-menu', '
 
 <template>
   <section class="view active">
-    <CommonplaceTopbar :brand-html="brandHtml">
+    <CommonplaceTopbar :brand-html="brandHtml" home>
       <button class="btn ib" @click="$emit('toggle-search')"><span style="font-size:15px">○</span></button>
       <button class="btn ib" @click="$emit('open-menu')">⋯</button>
     </CommonplaceTopbar>

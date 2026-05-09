@@ -1,4 +1,6 @@
 <script setup>
+import { RouterLink } from 'vue-router';
+
 defineProps({
   brandHtml: {
     type: String,
@@ -16,6 +18,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  home: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 defineEmits(['back']);
@@ -23,6 +29,7 @@ defineEmits(['back']);
 
 <template>
   <div class="tb">
+    <RouterLink v-if="home" to="/" class="btn ib home-btn">⌂</RouterLink>
     <button v-if="back" class="btn ib" @click="$emit('back')">←</button>
     <div v-if="brandHtml" class="tb-brand" v-html="brandHtml" />
     <span v-else class="tb-lbl">{{ label }}</span>
