@@ -6,10 +6,10 @@ defineProps({
   },
 });
 
-const emit = defineEmits(['open', 'open-tag', 'jump']);
+const emit = defineEmits(['open', 'open-tag', 'jump', 'copy']);
 
 function handleCardClick(event, item) {
-  const interactiveTarget = event.target.closest('.cdh-mark, .cdh-tip-link, a, button, .task-item');
+  const interactiveTarget = event.target.closest('.cdh-mark, .cdh-tip-link, a, button, .task-item, .mom-copy-btn');
   if (interactiveTarget) return;
   emit('open', { id: item.id, mediaId: item.mediaId });
 }
@@ -26,6 +26,7 @@ function handleCardClick(event, item) {
         <span v-if="item.anchor && item.anchor !== '—'">{{ item.anchor }}</span>
       </span>
       <span class="mom-date">{{ item.dateLabel }}</span>
+      <button class="mom-copy-btn" title="Copy for Figma" @click.stop="$emit('copy', item)">❐</button>
     </div>
     <div class="mom-body">
       <template v-if="item.thoughtHtml">

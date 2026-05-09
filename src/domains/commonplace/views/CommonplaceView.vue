@@ -1857,6 +1857,7 @@ onBeforeUnmount(() => {
       @jump="jumpTo"
       @toggle-tag="toggleTag"
       @switch-tab="switchTab"
+      @toast="showToast($event)"
     />
 
     <CommonplaceConnectionsScreen

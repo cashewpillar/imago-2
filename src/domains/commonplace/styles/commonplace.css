@@ -184,6 +184,9 @@
 .cp-domain .mom-card-head{display:flex;align-items:center;gap:8px;padding:10px 13px 9px;border-bottom:1px solid var(--b);}
 .cp-domain .mom-anchor{font-size:11px;color:var(--ink3);flex:1;}
 .cp-domain .mom-date{font-size:10px;color:var(--ink4);}
+.cp-domain .mom-copy-btn{border:none;background:none;color:var(--ink4);font-size:12px;cursor:pointer;padding:4px;margin-left:4px;opacity:0;transition:opacity .15s,color .12s;}
+.cp-domain .mom-card:hover .mom-copy-btn{opacity:1;}
+.cp-domain .mom-copy-btn:hover{color:var(--rust);}
 .cp-domain .mom-body{padding:10px 13px;}
 .cp-domain .mom-sec{font-size:9px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--rust);margin-bottom:4px;margin-top:9px;}
 .cp-domain .mom-sec:first-child{margin-top:0;}
