@@ -2,6 +2,8 @@
 import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import BaseModal from '../../../shared/components/BaseModal.vue';
 import {
+  exportAfterlightData,
+  importAfterlightData,
   importAfterlightLegacyEntries,
   prepareAfterlightLegacyImport,
 } from '../services/afterlightDb';
@@ -50,6 +52,16 @@ function handleDocumentClick(event) {
   menuOpen.value = false;
 }
 
+async function handleExport() {
+  menuOpen.value = false;
+  try {
+    await exportAfterlightData();
+    showToast('Exporting Afterlight data…', 'success');
+  } catch (error) {
+    showToast(error.message || 'Export failed', 'error');
+  }
+}
+
 async function handleFileChange(event) {
   const [file] = event.target.files || [];
   event.target.value = '';
@@ -57,6 +69,19 @@ async function handleFileChange(event) {
 
   try {
     const payload = JSON.parse(await file.text());
+
+    // Check if it's a native import
+    if (payload.type === 'imago-afterlight-export') {
+      importing.value = true;
+      const result = await importAfterlightData(payload);
+      showToast(`Imported ${result.imported} Afterlight entries`, 'success');
+      emit('imported', result.workspace);
+      importing.value = false;
+      menuOpen.value = false;
+      return;
+    }
+
+    // Otherwise, try legacy import
     const nextPlan = prepareAfterlightLegacyImport(payload);
     plan.value = nextPlan;
     stateUpdates.value = Object.fromEntries((nextPlan.stateValues || []).map((value) => [value, value]));
@@ -109,6 +134,13 @@ onBeforeUnmount(() => {
     </button>
 
     <div v-if="menuOpen" class="al-overflow-menu">
+      <button type="button" class="al-overflow-item" @click="handleExport">
+        Export JSON
+      </button>
+      <button type="button" class="al-overflow-item" @click="openPicker">
+        Import JSON
+      </button>
+      <div class="al-menu-divider" />
       <button type="button" class="al-overflow-item" @click="openPicker">
         Import legacy
       </button>
@@ -248,6 +280,12 @@ onBeforeUnmount(() => {
 .al-overflow-item:hover {
   background: #171717;
   color: #c8a96e;
+}
+
+.al-menu-divider {
+  height: 1px;
+  background: #2a2a2a;
+  margin: 4px 0;
 }
 
 .al-hidden-input {

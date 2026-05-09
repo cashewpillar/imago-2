@@ -307,3 +307,60 @@ export async function importAfterlightLegacyEntries(plan, stateUpdates = {}) {
     workspace: await getAfterlightWorkspace(),
   };
 }
+
+export async function exportAfterlightData() {
+  const vault = await ensureAfterlightVault();
+  const entries = await listEntries(vault.id);
+
+  const payload = {
+    type: 'imago-afterlight-export',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    entries,
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.style.display = 'none';
+  anchor.href = url;
+  anchor.download = `afterlight-export-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  setTimeout(() => {
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
+export async function importAfterlightData(payload) {
+  if (!payload || payload.type !== 'imago-afterlight-export') {
+    throw new Error('Invalid Afterlight export file.');
+  }
+
+  const vault = await ensureAfterlightVault();
+  const entries = (payload.entries || []).map((entry) => ({
+    createdAt: entry.createdAt,
+    data: entry.data,
+  }));
+
+  if (!entries.length) {
+    throw new Error('No entries found in import file.');
+  }
+
+  const nextFields = (vault.fields || []).map((field) => {
+    const values = entries.flatMap((entry) => {
+      const value = entry.data[field.key];
+      if (Array.isArray(value)) return value;
+      return value ? [value] : [];
+    });
+
+    return mergeFieldOptions(field, values);
+  });
+
+  await importEntriesIntoVault(vault.id, nextFields, entries);
+  return {
+    imported: entries.length,
+    workspace: await getAfterlightWorkspace(),
+  };
+}
