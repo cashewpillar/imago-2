@@ -937,6 +937,7 @@ function addBlk(cid, val = '', focus = false, afterEl = null) {
     ta.focus();
     ta.selectionStart = ta.selectionEnd = ta.value.length;
   }
+  return ta;
 }
 
 function rmBlk(el) {
@@ -1023,7 +1024,17 @@ function bView(ta, v, baseTs = null) {
 function blkKey(e, ta) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    addBlk(ta.parentElement.parentElement.id, '', true, ta.parentElement);
+    const start = ta.selectionStart;
+    const val = ta.value;
+    const before = val.substring(0, start);
+    const after = val.substring(start);
+    ta.value = before;
+    taInput(ta);
+    bView(ta, ta.nextElementSibling, ta.parentElement.parentElement.dataset.baseTs ? Number(ta.parentElement.parentElement.dataset.baseTs) : null);
+    const newTa = addBlk(ta.parentElement.parentElement.id, after, true, ta.parentElement);
+    if (after) {
+      newTa.setSelectionRange(0, 0);
+    }
   }
   if (e.key === 'Backspace' && !ta.value && ta.parentElement.previousElementSibling) {
     e.preventDefault();
