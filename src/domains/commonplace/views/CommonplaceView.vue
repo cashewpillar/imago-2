@@ -1216,10 +1216,16 @@ function removeTag(index) {
 }
 
 function momentOptions() {
-  return AMO.filter((m) => m.id !== edMomId).map((m) => {
-    const med = AM.find((x) => x.id === m.mediaId);
-    return { id: m.id, label: `${med ? med.title.slice(0, 16) : '?'} / ${m.anchor || fdt(m.createdAt)}` };
-  });
+  const currentTags = activeTags.value;
+  return AMO.filter((m) => m.id !== edMomId)
+    .filter((m) => {
+      if (!currentTags.length) return true;
+      return (m.tags || []).some((t) => currentTags.includes(t));
+    })
+    .map((m) => {
+      const med = AM.find((x) => x.id === m.mediaId);
+      return { id: m.id, label: `${med ? med.title : '?'} / ${m.anchor || fdt(m.createdAt)}` };
+    });
 }
 
 async function openMomentEditor(momId = null, mediaId = cMediaId) {
