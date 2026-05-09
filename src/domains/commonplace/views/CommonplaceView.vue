@@ -1814,8 +1814,6 @@ onBeforeUnmount(() => {
       @commit-tag-input="commitRemainingTagInput"
       @remove-tag="removeTag"
       @copy-blocks="copyBlks"
-      @append-thought-preset="apBlock('mo-thought-blks', $event)"
-      @append-connection-preset="apBlock('mo-conn-blks', $event)"
       @add-relation="relationRows.push({ label: '', toId: null })"
       @remove-relation="relationRows.splice($event, 1)"
     />
