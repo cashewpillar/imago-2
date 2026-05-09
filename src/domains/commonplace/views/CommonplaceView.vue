@@ -1,5 +1,5 @@
 <script setup>
-import { inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import CommonplaceConnectionsScreen from '../components/CommonplaceConnectionsScreen.vue';
 import CommonplaceLibraryScreen from '../components/CommonplaceLibraryScreen.vue';
 import CommonplaceMenuSheet from '../components/CommonplaceMenuSheet.vue';
@@ -49,6 +49,81 @@ const activeTags = ref([]);
 const relationRows = ref([]);
 const showMediaDelete = ref(false);
 const showMomentDelete = ref(false);
+
+watch([mediaForm, momentForm, activeTags, relationRows], () => {
+  saveDraft();
+}, { deep: true });
+
+const STORAGE_KEYS = {
+  activeView: 'cp-draft-active-view',
+  mediaForm: 'cp-draft-media-form',
+  momentForm: 'cp-draft-moment-form',
+  activeTags: 'cp-draft-active-tags',
+  relationRows: 'cp-draft-relation-rows',
+  cMediaId: 'cp-draft-c-media-id',
+  edMomMediaId: 'cp-draft-ed-mom-media-id',
+  mediaReason: 'cp-draft-media-reason',
+  momentThought: 'cp-draft-moment-thought',
+  momentConn: 'cp-draft-moment-conn',
+  momentLine: 'cp-draft-moment-line',
+};
+
+function clearDrafts() {
+  Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
+}
+
+function saveDraft() {
+  if (activeView.value === 'med' && !edMediaId) {
+    localStorage.setItem(STORAGE_KEYS.activeView, 'med');
+    localStorage.setItem(STORAGE_KEYS.mediaForm, JSON.stringify(mediaForm.value));
+    localStorage.setItem(STORAGE_KEYS.mediaReason, getBlks('me-reason-blks'));
+  } else if (activeView.value === 'momed' && !edMomId) {
+    localStorage.setItem(STORAGE_KEYS.activeView, 'momed');
+    localStorage.setItem(STORAGE_KEYS.momentForm, JSON.stringify(momentForm.value));
+    localStorage.setItem(STORAGE_KEYS.activeTags, JSON.stringify(activeTags.value));
+    localStorage.setItem(STORAGE_KEYS.relationRows, JSON.stringify(relationRows.value));
+    localStorage.setItem(STORAGE_KEYS.cMediaId, String(cMediaId || ''));
+    localStorage.setItem(STORAGE_KEYS.edMomMediaId, String(edMomMediaId || ''));
+    localStorage.setItem(STORAGE_KEYS.momentThought, getBlks('mo-thought-blks'));
+    localStorage.setItem(STORAGE_KEYS.momentConn, getBlks('mo-conn-blks'));
+    localStorage.setItem(STORAGE_KEYS.momentLine, getBlks('mo-line-blks'));
+  }
+}
+
+function loadDraft() {
+  const av = localStorage.getItem(STORAGE_KEYS.activeView);
+  if (av === 'med') {
+    const form = localStorage.getItem(STORAGE_KEYS.mediaForm);
+    const reason = localStorage.getItem(STORAGE_KEYS.mediaReason);
+    if (form) {
+      mediaForm.value = JSON.parse(form);
+      openMediaEditor();
+      nextTick(() => renderBlks('me-reason-blks', reason || ''));
+    }
+  } else if (av === 'momed') {
+    const form = localStorage.getItem(STORAGE_KEYS.momentForm);
+    const tags = localStorage.getItem(STORAGE_KEYS.activeTags);
+    const rels = localStorage.getItem(STORAGE_KEYS.relationRows);
+    const mid = localStorage.getItem(STORAGE_KEYS.cMediaId);
+    const emid = localStorage.getItem(STORAGE_KEYS.edMomMediaId);
+    const thought = localStorage.getItem(STORAGE_KEYS.momentThought);
+    const conn = localStorage.getItem(STORAGE_KEYS.momentConn);
+    const line = localStorage.getItem(STORAGE_KEYS.momentLine);
+    if (form) {
+      momentForm.value = JSON.parse(form);
+      activeTags.value = JSON.parse(tags || '[]');
+      relationRows.value = JSON.parse(rels || '[]');
+      cMediaId = mid ? Number(mid) : null;
+      edMomMediaId = emid ? Number(emid) : null;
+      openMomentEditor(null, edMomMediaId);
+      nextTick(() => {
+        renderBlks('mo-thought-blks', thought || '');
+        renderBlks('mo-conn-blks', conn || '');
+        renderBlks('mo-line-blks', line || '');
+      });
+    }
+  }
+}
 
 let AM = [];
 let AMO = [];
@@ -958,6 +1033,7 @@ function taInput(el) {
     el.value = nv;
     el.selectionStart = el.selectionEnd = start + (nv.length - val.length);
   }
+  saveDraft();
 }
 
 function mapOffset(source, rendered, targetOffset) {
@@ -1035,6 +1111,7 @@ function blkKey(e, ta) {
     if (after) {
       newTa.setSelectionRange(0, 0);
     }
+    saveDraft();
   }
   if (e.key === 'Backspace' && !ta.value && ta.parentElement.previousElementSibling) {
     e.preventDefault();
@@ -1084,6 +1161,7 @@ function apBlock(cid, text) {
   act.focus();
   act.selectionStart = act.selectionEnd = act.value.length;
   ar(act);
+  saveDraft();
 }
 
 async function openMediaEditor(id = null) {
@@ -1112,6 +1190,7 @@ async function openMediaEditor(id = null) {
   activeView.value = 'med';
   vStack.push('med');
   await nextTick();
+  if (!id) saveDraft();
   renderBlks('me-reason-blks', reasonText, reasonBaseTs);
   scrollToTop();
 }
@@ -1146,6 +1225,7 @@ async function saveMedia() {
     const id = await db.media.add(data);
     cMediaId = id;
     showToast('Added', 'success');
+    clearDrafts();
     await loadAll();
     openMedia(id);
   }
@@ -1260,6 +1340,7 @@ async function openMomentEditor(momId = null, mediaId = cMediaId) {
   activeView.value = 'momed';
   vStack.push('momed');
   await nextTick();
+  if (!momId) saveDraft();
   renderBlks('mo-thought-blks', thoughtText, blockBaseTs);
   renderBlks('mo-conn-blks', connectionText, blockBaseTs);
   renderBlks('mo-line-blks', lineText, blockBaseTs);
@@ -1285,6 +1366,7 @@ async function saveMoment() {
     }
   }
   showToast(edMomId ? 'Moment updated' : 'Moment saved', 'success');
+  if (!edMomId) clearDrafts();
   await loadAll();
   renderMD(edMomMediaId || cMediaId);
   back();
@@ -1675,6 +1757,11 @@ function handleSearchToggle() {
   }
 }
 
+function cancelEditor() {
+  clearDrafts();
+  back();
+}
+
 function updateSearch() {
   renderList();
 }
@@ -1730,6 +1817,7 @@ onMounted(async () => {
   window.addEventListener('resize', onWindowMove);
   vStack.push('home');
   await loadAll();
+  loadDraft();
 });
 
 onBeforeUnmount(() => {
@@ -1806,7 +1894,7 @@ onBeforeUnmount(() => {
       :meta="editorMeta"
       :media-form="mediaForm"
       :show-media-delete="showMediaDelete"
-      @back="back"
+      @back="cancelEditor"
       @delete-media="delMedia"
       @save-media="saveMedia"
       @copy-blocks="copyBlks"
@@ -1823,7 +1911,7 @@ onBeforeUnmount(() => {
       :relation-rows="relationRows"
       :show-moment-delete="showMomentDelete"
       :moment-options="momentOptions()"
-      @back="back"
+      @back="cancelEditor"
       @delete-moment="delMoment"
       @save-moment="saveMoment"
       @set-stage="setMoStage"
