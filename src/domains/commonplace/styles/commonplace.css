@@ -208,6 +208,12 @@
 .cp-domain .tp-rm{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 7px;border-radius:3px;background:var(--teal2);color:var(--teal);border:1px solid rgba(26,107,90,.2);}
 .cp-domain .tp-rm button{background:none;border:none;cursor:pointer;font-size:12px;color:var(--teal);padding:0;line-height:1;opacity:.7;}
 
+/* TAG SUGGESTIONS */
+.cp-domain .tag-suggestions{position:absolute;z-index:1000;background:var(--paper);border:1px solid var(--bm);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;width:100%;margin-top:4px;}
+.cp-domain .tag-suggestion{padding:9px 12px;font-size:13px;color:var(--ink);cursor:pointer;transition:background .12s;}
+.cp-domain .tag-suggestion:hover{background:var(--cream2);}
+.cp-domain .tag-suggestion.selected{background:var(--cream2);color:var(--rust);font-weight:500;}
+
 /* REL ROWS */
 .cp-domain .rel-row{display:flex;gap:7px;align-items:center;margin-bottom:7px;}
 .cp-domain .rel-row select,.cp-domain .rel-row input{flex:1;}

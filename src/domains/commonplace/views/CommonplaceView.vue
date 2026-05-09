@@ -1813,6 +1813,7 @@ onBeforeUnmount(() => {
       :cur-mo-stg="curMoStg"
       :moment-form="momentForm"
       :active-tags="activeTags"
+      :all-tags="allTags()"
       :relation-rows="relationRows"
       :show-moment-delete="showMomentDelete"
       :moment-options="momentOptions()"
