@@ -217,6 +217,7 @@ export async function createAfterlightEntry(formData) {
   const createdAt = Date.now();
   const loggedAtUtc = new Date(createdAt).toISOString();
   const nextData = {
+    uid: crypto.randomUUID(),
     title: formatTitle(formData),
     loggedAtUtc,
     action: Array.isArray(formData.action) ? formData.action.filter(Boolean) : [],
@@ -271,24 +272,33 @@ export function prepareAfterlightLegacyImport(payload) {
 
 export async function importAfterlightLegacyEntries(plan, stateUpdates = {}) {
   const vault = await ensureAfterlightVault();
+  const existingEntries = await listEntries(vault.id);
+  const existingTimestamps = new Set(existingEntries.map((e) => e.createdAt));
+
   const stateMap = new Map(
     Object.entries(stateUpdates || {}).map(([source, target]) => [cleanText(source), cleanText(target) || cleanText(source)]),
   );
 
-  const importedEntries = (plan?.entries || []).map((entry) => {
-    const state = uniqueList(entry.data.state.map((value) => stateMap.get(cleanText(value)) || cleanText(value)));
-    return {
-      createdAt: entry.createdAt,
-      data: {
-        ...entry.data,
-        state,
-        title: formatTitle({ action: entry.data.action, state }),
-      },
-    };
-  });
+  const importedEntries = (plan?.entries || [])
+    .filter((entry) => !existingTimestamps.has(entry.createdAt))
+    .map((entry) => {
+      const state = uniqueList(entry.data.state.map((value) => stateMap.get(cleanText(value)) || cleanText(value)));
+      return {
+        createdAt: entry.createdAt,
+        data: {
+          ...entry.data,
+          uid: crypto.randomUUID(),
+          state,
+          title: formatTitle({ action: entry.data.action, state }),
+        },
+      };
+    });
 
   if (!importedEntries.length) {
-    throw new Error('No importable entries were prepared.');
+    return {
+      imported: 0,
+      workspace: await getAfterlightWorkspace(),
+    };
   }
 
   const nextFields = (vault.fields || []).map((field) => {
@@ -339,13 +349,29 @@ export async function importAfterlightData(payload) {
   }
 
   const vault = await ensureAfterlightVault();
-  const entries = (payload.entries || []).map((entry) => ({
-    createdAt: entry.createdAt,
-    data: entry.data,
-  }));
+  const existingEntries = await listEntries(vault.id);
+  const existingUids = new Set(existingEntries.map((e) => e.data.uid).filter(Boolean));
+  const existingTimestamps = new Set(existingEntries.map((e) => e.createdAt));
+
+  const entries = (payload.entries || [])
+    .filter((entry) => {
+      if (entry.data.uid && existingUids.has(entry.data.uid)) return false;
+      if (existingTimestamps.has(entry.createdAt)) return false;
+      return true;
+    })
+    .map((entry) => ({
+      createdAt: entry.createdAt,
+      data: {
+        ...entry.data,
+        uid: entry.data.uid || crypto.randomUUID(),
+      },
+    }));
 
   if (!entries.length) {
-    throw new Error('No entries found in import file.');
+    return {
+      imported: 0,
+      workspace: await getAfterlightWorkspace(),
+    };
   }
 
   const nextFields = (vault.fields || []).map((field) => {
