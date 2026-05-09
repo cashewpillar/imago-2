@@ -21,7 +21,6 @@ function createDefaultForm() {
     location: 'Room',
     time: getTimeOfDay(),
     daytype: getDayType(),
-    agency: '',
     minutes: 30,
     notes: '',
   };
@@ -41,7 +40,6 @@ const canSubmit = computed(() => {
     form.value.location &&
     form.value.time &&
     form.value.daytype &&
-    form.value.agency &&
     Number.isFinite(minutes) &&
     minutes >= 0,
   );
@@ -178,22 +176,6 @@ onMounted(loadWorkspace);
             class="al-pill"
             :class="{ active: form.daytype === option }"
             @click="selectSingle('daytype', option)"
-          >
-            {{ option }}
-          </button>
-        </div>
-      </section>
-
-      <section class="al-section">
-        <div class="al-section-label">agency type</div>
-        <div class="al-pills">
-          <button
-            v-for="option in getOptions('agency')"
-            :key="option"
-            type="button"
-            class="al-pill"
-            :class="{ active: form.agency === option }"
-            @click="selectSingle('agency', option)"
           >
             {{ option }}
           </button>

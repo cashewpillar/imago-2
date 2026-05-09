@@ -189,12 +189,10 @@ export function buildInsights(entries) {
   const topTrigger = countMulti(entries, 'action')[0];
   const topState = countMulti(entries, 'state')[0];
   const topTime = countSingle(entries, 'time')[0];
-  const topAgency = countSingle(entries, 'agency')[0];
 
   if (topTrigger) insights.push(`${topTrigger[0]} is the top trigger at ${topTrigger[1]} entries.`);
   if (topState) insights.push(`${topState[0]} is the most common internal state at ${topState[1]} entries.`);
   if (topTime) insights.push(`${topTime[0]} is the busiest time block with ${topTime[1]} entries.`);
-  if (topAgency) insights.push(`${topAgency[0]} is the most common agency type at ${topAgency[1]} entries.`);
 
   return insights;
 }

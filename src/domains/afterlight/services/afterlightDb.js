@@ -22,7 +22,6 @@ const DEFAULT_FIELDS = [
   { key: 'location', label: 'Location', type: 'select', options: ['Room', 'Home alone', 'Home with family', 'With relatives', 'With friends', 'Commute'] },
   { key: 'time', label: 'Time of day', type: 'select', options: ['Morning', 'Afternoon', 'Evening', 'Night'] },
   { key: 'daytype', label: 'Day type', type: 'select', options: ['WFH', 'Office day', 'Weekend', 'Day off', 'Socials'] },
-  { key: 'agency', label: 'Agency type', type: 'select', options: ['Automatic', 'Intentional'] },
   { key: 'minutes', label: 'Minutes', type: 'number', options: [] },
   { key: 'notes', label: 'Notes', type: 'textarea', options: [] },
 ];
@@ -125,7 +124,6 @@ function buildLegacyImportRow(entry, fallbackTimestamp) {
   const location = cleanText(entry?.location);
   const time = cleanText(entry?.time) || getTimeOfDay(createdAt);
   const daytype = cleanText(entry?.daytype) || getDayType(createdAt);
-  const agency = cleanText(entry?.agency);
   const minutes = normalizeMinutes(entry?.minutes);
   const notes = cleanText(entry?.notes);
 
@@ -139,7 +137,6 @@ function buildLegacyImportRow(entry, fallbackTimestamp) {
       location,
       time,
       daytype,
-      agency,
       minutes,
       notes,
     },
@@ -157,7 +154,6 @@ function normalizeEntry(entry) {
     location: data.location || '',
     time: data.time || '',
     daytype: data.daytype || '',
-    agency: data.agency || '',
     minutes: data.minutes === '' || data.minutes === undefined || data.minutes === null ? null : Number(data.minutes),
     notes: data.notes || '',
     data,
@@ -228,7 +224,6 @@ export async function createAfterlightEntry(formData) {
     location: formData.location || '',
     time: formData.time || getTimeOfDay(createdAt),
     daytype: formData.daytype || getDayType(createdAt),
-    agency: formData.agency || '',
     minutes: formData.minutes === '' || formData.minutes === null || formData.minutes === undefined ? null : Number(formData.minutes),
     notes: formData.notes || '',
   };

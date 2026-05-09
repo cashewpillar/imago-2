@@ -38,18 +38,6 @@ const locationCounts = computed(() => countSingle(filteredEntries.value, 'locati
 const insights = computed(() => buildInsights(filteredEntries.value));
 const headerMeta = computed(() => formatRangeLabel(filteredEntries.value));
 
-const agencyBreakdown = computed(() => {
-  const automatic = filteredEntries.value.filter((entry) => entry.agency === 'Automatic').length;
-  const intentional = filteredEntries.value.filter((entry) => entry.agency === 'Intentional').length;
-  const total = automatic + intentional;
-  return {
-    automatic,
-    intentional,
-    automaticPercent: total ? Math.round((automatic / total) * 100) : 0,
-    intentionalPercent: total ? Math.round((intentional / total) * 100) : 0,
-  };
-});
-
 function renderBars(items, fillClass) {
   if (!items.length) return [];
   const max = items[0][1] || 1;
@@ -166,18 +154,6 @@ onMounted(loadWorkspace);
         </div>
       </section>
 
-      <section v-if="agencyBreakdown.automatic || agencyBreakdown.intentional" class="al-section">
-        <div class="al-section-label">intentional vs automatic</div>
-        <div class="al-agency-track">
-          <div class="al-red" :style="{ width: `${agencyBreakdown.automaticPercent}%` }" />
-          <div class="al-green" :style="{ width: `${agencyBreakdown.intentionalPercent}%` }" />
-        </div>
-        <div class="al-agency-legend">
-          <span><span class="al-legend-dot al-red" />Automatic {{ agencyBreakdown.automaticPercent }}% ({{ agencyBreakdown.automatic }})</span>
-          <span><span class="al-legend-dot al-green" />Intentional {{ agencyBreakdown.intentionalPercent }}% ({{ agencyBreakdown.intentional }})</span>
-        </div>
-      </section>
-
       <section v-if="insights.length" class="al-section">
         <div class="al-section-label">patterns worth noting</div>
         <div v-for="insight in insights" :key="insight" class="al-insight">
@@ -204,7 +180,6 @@ onMounted(loadWorkspace);
 
             <div class="al-chip-row">
               <span class="al-chip">{{ entry.location || 'No location' }}</span>
-              <span class="al-chip">{{ entry.agency || 'No agency' }}</span>
               <span class="al-chip">{{ entry.minutes ? formatDuration(entry.minutes) : '—' }}</span>
             </div>
 
