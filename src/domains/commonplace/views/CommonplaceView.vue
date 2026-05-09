@@ -1054,6 +1054,14 @@ function getBlks(cid) {
   return [...(get(cid)?.querySelectorAll('textarea') || [])].map((t) => t.value.trim()).filter(Boolean).join('\n\n');
 }
 
+function copyBlks(cid) {
+  const text = getBlks(cid);
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard');
+  });
+}
+
 function apBlock(cid, text) {
   const c = get(cid);
   let act = c?.querySelector('textarea:not(.off)');
@@ -1784,6 +1792,7 @@ onBeforeUnmount(() => {
       @back="back"
       @delete-media="delMedia"
       @save-media="saveMedia"
+      @copy-blocks="copyBlks"
     />
 
     <CommonplaceMomentEditorScreen
@@ -1804,6 +1813,7 @@ onBeforeUnmount(() => {
       @handle-tag-key="handleTagKey"
       @commit-tag-input="commitRemainingTagInput"
       @remove-tag="removeTag"
+      @copy-blocks="copyBlks"
       @append-thought-preset="apBlock('mo-thought-blks', $event)"
       @append-connection-preset="apBlock('mo-conn-blks', $event)"
       @add-relation="relationRows.push({ label: '', toId: null })"

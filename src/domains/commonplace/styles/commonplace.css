@@ -112,7 +112,9 @@
   opacity: 0.6;
 }
 
-.cp-domain .fl{font-size:10px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:5px;}
+.cp-domain .fl{font-size:10px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.cp-domain .fl-copy{border:none;background:none;color:var(--rust);font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;padding:0;opacity:.7;transition:opacity .12s;}
+.cp-domain .fl-copy:hover{opacity:1;}
 .cp-domain .fg{margin-bottom:16px;}
 
 /* SHARED HEAD */

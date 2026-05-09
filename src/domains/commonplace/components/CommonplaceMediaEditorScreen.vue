@@ -20,7 +20,7 @@ defineProps({
   },
 });
 
-defineEmits(['back', 'delete-media', 'save-media']);
+defineEmits(['back', 'delete-media', 'save-media', 'copy-blocks']);
 </script>
 
 <template>
@@ -35,7 +35,7 @@ defineEmits(['back', 'delete-media', 'save-media']);
         <div class="fg"><label class="fl">Date Started</label><input v-model="mediaForm.startedAt" class="fi" type="date"></div>
         <div class="fg"><label class="fl">Date Finished</label><input v-model="mediaForm.finishedAt" class="fi" type="date"></div>
       </div>
-      <div class="fg"><label class="fl">Why did you pick this?</label><div id="me-reason-blks"></div></div>
+      <div class="fg"><label class="fl"><span>Why did you pick this?</span><button class="fl-copy" @click="$emit('copy-blocks', 'me-reason-blks')">Copy</button></label><div id="me-reason-blks"></div></div>
     </div>
     <div class="save-bar"><button v-if="showMediaDelete" class="btn bd" @click="$emit('delete-media')">Delete</button><button class="btn" @click="$emit('back')">Cancel</button><button class="btn bp" @click="$emit('save-media')">Save</button></div>
   </section>
