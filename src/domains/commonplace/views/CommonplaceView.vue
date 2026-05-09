@@ -581,7 +581,7 @@ function parseMd(t, baseTs = null, meta = null) {
   h = h.replace(/__(.*?)__/g, '<u>$1</u>');
   h = h.replace(/\*(.*?)\*/g, '<i>$1</i>');
   h = h.replace(/^---$/gm, '<hr>');
-  h = h.replace(/\((.*?)\)/g, '<span class="note">$1</span>');
+  h = h.replace(/\((.*?)\)/g, '<span class="note">($1)</span>');
 
   const container = document.createElement('div');
   container.innerHTML = h.replace(/\n/g, '<br>');
