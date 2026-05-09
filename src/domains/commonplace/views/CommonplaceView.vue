@@ -1106,7 +1106,7 @@ async function openMediaEditor(id = null) {
     reasonText = m.reason || '';
     reasonBaseTs = m.createdAt;
   } else {
-    mediaForm.value = { type: 'book', status: 'in-progress', title: '', creator: '', startedAt: '', finishedAt: '' };
+    mediaForm.value = { type: 'book', status: 'in-progress', title: '', creator: '', startedAt: fdtInput(Date.now()), finishedAt: '' };
     editorMeta.value = '';
   }
   activeView.value = 'med';
