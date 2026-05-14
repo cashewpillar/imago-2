@@ -1,4 +1,5 @@
 <script setup>
+import { onMounted, onUnmounted } from 'vue';
 import { RouterLink } from 'vue-router';
 
 defineProps({
@@ -10,6 +11,19 @@ defineProps({
     type: String,
     default: '',
   },
+});
+
+let hadLightClass = false;
+
+onMounted(() => {
+  hadLightClass = document.documentElement.classList.contains('light');
+  document.documentElement.classList.remove('light');
+});
+
+onUnmounted(() => {
+  if (hadLightClass) {
+    document.documentElement.classList.add('light');
+  }
 });
 </script>
 

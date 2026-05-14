@@ -1,8 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, inject, onMounted, ref } from 'vue';
 import AfterlightLegacyImportLauncher from '../components/AfterlightLegacyImportLauncher.vue';
 import AfterlightShell from '../components/AfterlightShell.vue';
-import { getAfterlightWorkspace } from '../services/afterlightDb';
+import AfterlightEntryForm from '../components/AfterlightEntryForm.vue';
+import BaseModal from '../../../shared/components/BaseModal.vue';
+import { getAfterlightWorkspace, updateAfterlightEntry, deleteAfterlightEntry } from '../services/afterlightDb';
 import {
   buildInsights,
   buildOverviewStats,
@@ -15,8 +17,12 @@ import {
   getEntryTime,
 } from '../services/afterlightAnalytics';
 
+const { showToast } = inject('appShell');
+
 const selectedRange = ref(30);
 const entries = ref([]);
+const editingEntry = ref(null);
+const saving = ref(false);
 
 const rangeOptions = [
   { label: 'last 7 days', value: 7 },
@@ -52,6 +58,46 @@ function renderBars(items, fillClass) {
 async function loadWorkspace() {
   const workspace = await getAfterlightWorkspace();
   entries.value = workspace.entries || [];
+}
+
+function startEdit(entry) {
+  editingEntry.value = entry;
+}
+
+function cancelEdit() {
+  editingEntry.value = null;
+}
+
+async function handleUpdate(formData) {
+  if (!editingEntry.value || saving.value) return;
+  saving.value = true;
+  try {
+    await updateAfterlightEntry(editingEntry.value.id, formData);
+    await loadWorkspace();
+    editingEntry.value = null;
+    showToast('Entry updated', 'success');
+  } catch (error) {
+    showToast(error.message || 'Update failed', 'error');
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function handleDelete() {
+  if (!editingEntry.value || saving.value) return;
+  if (!confirm('Are you sure you want to delete this entry?')) return;
+  
+  saving.value = true;
+  try {
+    await deleteAfterlightEntry(editingEntry.value.id);
+    await loadWorkspace();
+    editingEntry.value = null;
+    showToast('Entry deleted', 'success');
+  } catch (error) {
+    showToast(error.message || 'Delete failed', 'error');
+  } finally {
+    saving.value = false;
+  }
 }
 
 onMounted(loadWorkspace);
@@ -164,7 +210,7 @@ onMounted(loadWorkspace);
       <section class="al-section">
         <div class="al-section-label">recent entries</div>
         <div class="al-entry-list">
-          <article v-for="entry in filteredEntries.slice(0, 20)" :key="entry.id" class="al-entry">
+          <article v-for="entry in filteredEntries.slice(0, 20)" :key="entry.id" class="al-entry" @click="startEdit(entry)">
             <div class="al-entry-head">
               <div class="al-entry-time">{{ formatEntryDateTime(entry) }}</div>
               <div class="al-entry-day">{{ entry.time || '—' }} · {{ entry.daytype || '—' }}</div>
@@ -190,6 +236,27 @@ onMounted(loadWorkspace);
     </template>
 
     <div v-else class="al-empty">No local entries yet for this range.</div>
+
+    <BaseModal
+      :open="!!editingEntry"
+      title="edit entry"
+      @close="cancelEdit"
+    >
+      <AfterlightEntryForm
+        v-if="editingEntry"
+        :initial-data="editingEntry"
+        :saving="saving"
+        submit-label="save changes"
+        saving-label="saving…"
+        @submit="handleUpdate"
+        @cancel="cancelEdit"
+      />
+      <template #footer>
+        <button class="al-btn al-btn-danger" :disabled="saving" @click="handleDelete">
+          delete entry
+        </button>
+      </template>
+    </BaseModal>
   </AfterlightShell>
 </template>
 

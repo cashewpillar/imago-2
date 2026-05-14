@@ -5,6 +5,17 @@
   background: #0e0e0e;
   color: #e8e4dc;
   font-family: 'DM Mono', monospace;
+  
+  /* Override global variables for themed components like BaseModal */
+  --bg: #0e0e0e;
+  --bg2: #161616;
+  --bg3: #1e1e1e;
+  --bg4: #2a2a2a;
+  --border: #2a2a2a;
+  --border2: #3a3a3a;
+  --text: #e8e4dc;
+  --muted: #7a7570;
+  --muted2: #4a4a4a;
 }
 
 .al-shell {
@@ -221,6 +232,20 @@
   opacity: 0.85;
 }
 
+.al-btn-danger {
+  background: transparent;
+  border: 1px solid #4a2a2a;
+  color: #cf6f6f;
+  width: auto;
+  padding: 8px 16px;
+  font-size: 11px;
+}
+
+.al-btn-danger:hover {
+  background: #2e1a1a;
+  border-color: #cf6f6f;
+}
+
 .al-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -432,6 +457,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.al-entry:hover {
+  border-color: #c8a96e;
+  background: #1c1c1c;
 }
 
 .al-entry-head {

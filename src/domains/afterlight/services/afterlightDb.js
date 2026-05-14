@@ -256,6 +256,38 @@ export async function createAfterlightEntry(formData) {
   return getAfterlightWorkspace();
 }
 
+export async function updateAfterlightEntry(entryId, formData) {
+  const vault = await ensureAfterlightVault();
+  const nextData = {
+    title: formatTitle(formData),
+    action: Array.isArray(formData.action) ? formData.action.filter(Boolean) : [],
+    state: Array.isArray(formData.state) ? formData.state.filter(Boolean) : [],
+    location: formData.location || '',
+    time: formData.time || '',
+    daytype: formData.daytype || '',
+    minutes: formData.minutes === '' || formData.minutes === null || formData.minutes === undefined ? null : Number(formData.minutes),
+    notes: formData.notes || '',
+  };
+
+  const nextFields = (vault.fields || []).map((field) => {
+    const value = nextData[field.key];
+    if (Array.isArray(value)) return mergeFieldOptions(field, value);
+    return mergeFieldOptions(field, value ? [value] : []);
+  });
+
+  if (stableStringify(nextFields) !== stableStringify(vault.fields || [])) {
+    await updateVault(vault.id, { fields: nextFields });
+  }
+
+  await updateEntry(entryId, nextData);
+  return getAfterlightWorkspace();
+}
+
+export async function deleteAfterlightEntry(entryId) {
+  await deleteEntry(entryId);
+  return getAfterlightWorkspace();
+}
+
 export function prepareAfterlightLegacyImport(payload) {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Import file is empty or invalid.');
