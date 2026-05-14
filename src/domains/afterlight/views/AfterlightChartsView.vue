@@ -1,21 +1,30 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, inject, onMounted, ref } from 'vue';
 import AfterlightLegacyImportLauncher from '../components/AfterlightLegacyImportLauncher.vue';
 import AfterlightShell from '../components/AfterlightShell.vue';
-import { getAfterlightWorkspace } from '../services/afterlightDb';
+import AfterlightEntryForm from '../components/AfterlightEntryForm.vue';
+import BaseModal from '../../../shared/components/BaseModal.vue';
+import { getAfterlightWorkspace, updateAfterlightEntry, deleteAfterlightEntry } from '../services/afterlightDb';
 import {
   countMinuteBuckets,
   filterEntriesByRange,
   formatDuration,
+  formatEntryDateTime,
   formatRangeLabel,
   getEntryTime,
   sumMinutesByMulti,
   sumMinutesBySingle,
   sumMinutesOverTime,
+  toDateKey,
 } from '../services/afterlightAnalytics';
+
+const { showToast } = inject('appShell');
 
 const selectedRange = ref(30);
 const entries = ref([]);
+const editingEntry = ref(null);
+const selectedDayEntries = ref([]);
+const saving = ref(false);
 
 const rangeOptions = [
   { label: 'last 7 days', value: 7 },
@@ -92,6 +101,57 @@ async function loadWorkspace() {
   entries.value = workspace.entries || [];
 }
 
+function handlePointClick(point) {
+  const dayEntries = entries.value.filter((entry) => toDateKey(getEntryTime(entry)) === point.date);
+  if (dayEntries.length === 1) {
+    editingEntry.value = dayEntries[0];
+  } else if (dayEntries.length > 1) {
+    selectedDayEntries.value = dayEntries;
+  }
+}
+
+function startEdit(entry) {
+  editingEntry.value = entry;
+  selectedDayEntries.value = [];
+}
+
+function cancelEdit() {
+  editingEntry.value = null;
+  selectedDayEntries.value = [];
+}
+
+async function handleUpdate(formData) {
+  if (!editingEntry.value || saving.value) return;
+  saving.value = true;
+  try {
+    await updateAfterlightEntry(editingEntry.value.id, formData);
+    await loadWorkspace();
+    editingEntry.value = null;
+    showToast('Entry updated', 'success');
+  } catch (error) {
+    showToast(error.message || 'Update failed', 'error');
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function handleDelete() {
+  if (!editingEntry.value || saving.value) return;
+  if (!confirm('Are you sure you want to delete this entry?')) return;
+  
+  saving.value = true;
+  try {
+    await deleteAfterlightEntry(editingEntry.value.id);
+    await loadWorkspace();
+    editingEntry.value = null;
+    showToast('Entry deleted', 'success');
+  } catch (error) {
+    showToast(error.message || 'Delete failed', 'error');
+  } finally {
+    saving.value = false;
+  }
+}
+
 onMounted(loadWorkspace);
 </script>
 
@@ -153,7 +213,21 @@ onMounted(loadWorkspace);
           <path class="al-path" :d="chartModel.path" />
 
           <g v-for="point in chartModel.points" :key="point.date">
-            <circle class="al-dot" :cx="point.x" :cy="point.y" r="4">
+            <circle
+              class="al-dot"
+              :cx="point.x"
+              :cy="point.y"
+              r="6"
+              style="cursor: pointer; fill-opacity: 0.1; stroke: transparent; stroke-width: 10;"
+              @click="handlePointClick(point)"
+            />
+            <circle
+              class="al-dot"
+              :cx="point.x"
+              :cy="point.y"
+              r="4"
+              pointer-events="none"
+            >
               <title>{{ `${point.label} · ${formatDuration(point.value)}${point.notes ? ` · ${point.notes}` : ''}` }}</title>
             </circle>
           </g>
@@ -204,6 +278,51 @@ onMounted(loadWorkspace);
     </template>
 
     <div v-else class="al-empty">No local entries yet for this range.</div>
+
+    <BaseModal
+      :open="selectedDayEntries.length > 0"
+      title="select entry"
+      @close="cancelEdit"
+    >
+      <div class="al-entry-list">
+        <article
+          v-for="entry in selectedDayEntries"
+          :key="entry.id"
+          class="al-entry"
+          @click="startEdit(entry)"
+        >
+          <div class="al-entry-head">
+            <div class="al-entry-time">{{ formatEntryDateTime(entry) }}</div>
+            <div class="al-entry-day">{{ entry.time || '—' }} · {{ entry.daytype || '—' }}</div>
+          </div>
+          <div class="al-chip-row">
+            <span v-for="item in entry.action" :key="`a-${entry.id}-${item}`" class="al-chip active">{{ item }}</span>
+          </div>
+          <div v-if="entry.notes" class="al-notes-copy">{{ entry.notes }}</div>
+        </article>
+      </div>
+    </BaseModal>
+
+    <BaseModal
+      :open="!!editingEntry"
+      title="edit entry"
+      @close="cancelEdit"
+    >
+      <AfterlightEntryForm
+        v-if="editingEntry"
+        :initial-data="editingEntry"
+        :saving="saving"
+        submit-label="save changes"
+        saving-label="saving…"
+        @submit="handleUpdate"
+        @cancel="cancelEdit"
+      />
+      <template #footer>
+        <button class="al-btn al-btn-danger" :disabled="saving" @click="handleDelete">
+          delete entry
+        </button>
+      </template>
+    </BaseModal>
   </AfterlightShell>
 </template>
 

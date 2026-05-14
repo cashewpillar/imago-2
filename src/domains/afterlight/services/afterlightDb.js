@@ -7,7 +7,9 @@ import {
   listEntries,
   listVaults,
   setAppMeta,
+  updateEntry,
   updateVault,
+  deleteEntry,
 } from '../../tables/services/tableVaultDb';
 import { mergeFieldOptions, normalizeField } from '../../../shared/utils/tableVault';
 import { getDayType, getTimeOfDay } from './afterlightAnalytics';
