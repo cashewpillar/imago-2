@@ -86,7 +86,7 @@ function renderMarkdown(text) {
     if (line.startsWith('#### ')) return `<h4>${line.substring(5)}</h4>`;
     if (line.startsWith('##### ')) return `<h5>${line.substring(6)}</h5>`;
     if (line.startsWith('- [ ] ')) return `<div class="md-check" data-line="${index}"><input type="checkbox" /> <span>${line.substring(6)}</span></div>`;
-    if (line.startsWith('- [x] ')) return `<div class="md-check" data-line="${index}"><input type="checkbox" checked /> <span>${line.substring(6)}</span></div>`;
+    if (line.startsWith('- [x] ')) return `<div class="md-check is-checked" data-line="${index}"><input type="checkbox" checked /> <span>${line.substring(6)}</span></div>`;
     if (line.startsWith('- ')) return `<div class="md-bullet"><span>•</span> <span>${line.substring(2)}</span></div>`;
     if (line.startsWith('* ')) return `<div class="md-bullet"><span>•</span> <span>${line.substring(2)}</span></div>`;
     return line ? `<p>${line}</p>` : '<br/>';
@@ -249,5 +249,9 @@ watch(() => props.modelValue, () => {
   accent-color: var(--primary); 
   width: 14px; 
   height: 14px; 
+}
+:deep(.md-preview) .md-check.is-checked span {
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 </style>
