@@ -213,7 +213,7 @@ onMounted(loadWorkspace);
           <path class="al-path" :d="chartModel.path" />
 
           <g v-for="point in chartModel.points" :key="point.date">
-            <template v-if="point.value > 0">
+            <template v-if="selectedRange !== 0 && point.value > 0">
               <circle
                 class="al-dot"
                 :cx="point.x"
