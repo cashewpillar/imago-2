@@ -41,6 +41,16 @@ const minutesByTrigger = computed(() => sumMinutesByMulti(filteredEntries.value,
 const minutesByTime = computed(() => sumMinutesBySingle(filteredEntries.value, 'time'));
 const minuteBuckets = computed(() => countMinuteBuckets(filteredEntries.value));
 const minuteTrend = computed(() => sumMinutesOverTime(filteredEntries.value, selectedRange.value));
+const peakDates = computed(() => {
+  if (selectedRange.value !== 0) return new Set();
+  return new Set(
+    [...minuteTrend.value]
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+      .filter((p) => p.value > 0)
+      .map((p) => p.date),
+  );
+});
 const headerMeta = computed(() => formatRangeLabel(filteredEntries.value));
 
 function renderBars(items, fillClass, formatter = (value) => value) {
@@ -213,7 +223,7 @@ onMounted(loadWorkspace);
           <path class="al-path" :d="chartModel.path" />
 
           <g v-for="point in chartModel.points" :key="point.date">
-            <template v-if="selectedRange !== 0 && point.value > 0">
+            <template v-if="(selectedRange !== 0 && point.value > 0) || peakDates.has(point.date)">
               <circle
                 class="al-dot"
                 :cx="point.x"
