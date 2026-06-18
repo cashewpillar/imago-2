@@ -213,23 +213,25 @@ onMounted(loadWorkspace);
           <path class="al-path" :d="chartModel.path" />
 
           <g v-for="point in chartModel.points" :key="point.date">
-            <circle
-              class="al-dot"
-              :cx="point.x"
-              :cy="point.y"
-              r="6"
-              style="cursor: pointer; fill-opacity: 0.1; stroke: transparent; stroke-width: 10;"
-              @click="handlePointClick(point)"
-            />
-            <circle
-              class="al-dot"
-              :cx="point.x"
-              :cy="point.y"
-              r="4"
-              pointer-events="none"
-            >
-              <title>{{ `${point.label} · ${formatDuration(point.value)}${point.notes ? ` · ${point.notes}` : ''}` }}</title>
-            </circle>
+            <template v-if="point.value > 0">
+              <circle
+                class="al-dot"
+                :cx="point.x"
+                :cy="point.y"
+                r="6"
+                style="cursor: pointer; fill-opacity: 0.1; stroke: transparent; stroke-width: 10;"
+                @click="handlePointClick(point)"
+              />
+              <circle
+                class="al-dot"
+                :cx="point.x"
+                :cy="point.y"
+                r="4"
+                pointer-events="none"
+              >
+                <title>{{ `${point.label} · ${formatDuration(point.value)}${point.notes ? ` · ${point.notes}` : ''}` }}</title>
+              </circle>
+            </template>
           </g>
 
           <text
