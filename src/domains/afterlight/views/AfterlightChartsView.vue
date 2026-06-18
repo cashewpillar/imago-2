@@ -40,7 +40,7 @@ const filteredEntries = computed(() =>
 const minutesByTrigger = computed(() => sumMinutesByMulti(filteredEntries.value, 'action'));
 const minutesByTime = computed(() => sumMinutesBySingle(filteredEntries.value, 'time'));
 const minuteBuckets = computed(() => countMinuteBuckets(filteredEntries.value));
-const minuteTrend = computed(() => sumMinutesOverTime(filteredEntries.value));
+const minuteTrend = computed(() => sumMinutesOverTime(filteredEntries.value, selectedRange.value));
 const headerMeta = computed(() => formatRangeLabel(filteredEntries.value));
 
 function renderBars(items, fillClass, formatter = (value) => value) {

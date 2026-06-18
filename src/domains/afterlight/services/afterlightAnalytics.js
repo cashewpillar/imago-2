@@ -142,7 +142,7 @@ export function countMinuteBuckets(entries) {
   return Object.entries(buckets).filter(([, count]) => count > 0);
 }
 
-export function sumMinutesOverTime(entries) {
+export function sumMinutesOverTime(entries, rangeDays) {
   const totals = {};
 
   entries.forEach((entry) => {
@@ -155,14 +155,39 @@ export function sumMinutesOverTime(entries) {
     if (entry.notes) totals[dateKey].notes.push(entry.notes);
   });
 
-  return Object.entries(totals)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, info]) => ({
-      date,
-      label: new Date(`${date}T12:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
+  if (entries.length === 0 && !rangeDays) return [];
+
+  const today = new Date();
+  let startDate;
+
+  if (rangeDays > 0) {
+    startDate = new Date();
+    startDate.setDate(today.getDate() - (rangeDays - 1));
+  } else if (entries.length > 0) {
+    const times = entries.map(getEntryTime).filter((t) => t > 0);
+    startDate = new Date(Math.min(...times));
+  } else {
+    return [];
+  }
+
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const result = [];
+  const current = new Date(start);
+
+  while (current <= end) {
+    const dateKey = toDateKey(current);
+    const info = totals[dateKey] || { value: 0, notes: [] };
+    result.push({
+      date: dateKey,
+      label: current.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
       value: info.value,
       notes: [...new Set(info.notes)].join(' • '),
-    }));
+    });
+    current.setDate(current.getDate() + 1);
+  }
+
+  return result;
 }
 
 export function buildOverviewStats(entries) {
